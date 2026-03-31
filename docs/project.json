@@ -3,6 +3,6 @@
   "sub_project_type": "",
   "name": "学习规划助手",
   "app_slug": "study-planner",
-  "version_description": "添加生产环境API配置支持",
+  "version_description": "添加Vercel Serverless API支持",
   "preview_type": "pc"
 }
