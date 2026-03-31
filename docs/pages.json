@@ -1,0 +1,72 @@
+[
+  {
+    "pageKey": "Home",
+    "title": "Home Page",
+    "url": "/"
+  },
+  {
+    "pageKey": "l49zue",
+    "title": "/child",
+    "url": "/child"
+  },
+  {
+    "pageKey": "Achievements",
+    "title": "Achievements",
+    "url": "/child/achievements"
+  },
+  {
+    "pageKey": "Library",
+    "title": "Library",
+    "url": "/child/library"
+  },
+  {
+    "pageKey": "Reports",
+    "title": "Reports",
+    "url": "/child/reports"
+  },
+  {
+    "pageKey": "Login",
+    "title": "Login",
+    "url": "/login"
+  },
+  {
+    "pageKey": "atyyp8",
+    "title": "/parent",
+    "url": "/parent"
+  },
+  {
+    "pageKey": "ParentAchievements",
+    "title": "Achievements",
+    "url": "/parent/achievements"
+  },
+  {
+    "pageKey": "ParentChildren",
+    "title": "Children",
+    "url": "/parent/children"
+  },
+  {
+    "pageKey": "ParentLibrary",
+    "title": "Library",
+    "url": "/parent/library"
+  },
+  {
+    "pageKey": "ParentPlans",
+    "title": "Plans",
+    "url": "/parent/plans"
+  },
+  {
+    "pageKey": "ParentSettings",
+    "title": "Settings",
+    "url": "/parent/settings"
+  },
+  {
+    "pageKey": "ParentTasks",
+    "title": "Tasks",
+    "url": "/parent/tasks"
+  },
+  {
+    "pageKey": "Register",
+    "title": "Register",
+    "url": "/register"
+  }
+]

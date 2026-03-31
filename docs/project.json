@@ -1,0 +1,8 @@
+{
+  "project_type": "web",
+  "sub_project_type": "",
+  "name": "小书虫",
+  "app_slug": "study-planner",
+  "version_description": "完成全栈学习管理系统搭建",
+  "preview_type": "pc"
+}
