@@ -1,4 +1,10 @@
 {
+  "name": "study-planner",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "cd backend && npx prisma migrate deploy && cd ../frontend && pnpm build",
+    "vercel-build": "cd backend && npx prisma migrate deploy && cd ../frontend && pnpm build"
+  },
   "devDependencies": {
     "@vercel/node": "^5.6.22"
   }
