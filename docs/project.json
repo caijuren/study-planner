@@ -1,8 +1,8 @@
 {
   "project_type": "web",
   "sub_project_type": "",
-  "name": "小书虫",
+  "name": "学习规划助手",
   "app_slug": "study-planner",
-  "version_description": "配置Vercel后端API部署",
+  "version_description": "添加生产环境API配置支持",
   "preview_type": "pc"
 }
