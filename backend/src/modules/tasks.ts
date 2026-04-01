@@ -21,10 +21,10 @@ const VALID_DIFFICULTIES = ['basic', 'advanced', 'challenge']
 
 /**
  * POST / - Create a new task
- * Body: { name, category, type, timePerUnit, weeklyRule, tags }
+ * Body: { name, category, type, timePerUnit, weeklyRule, tags, appliesTo }
  */
 tasksRouter.post('/', async (req: AuthRequest, res: Response) => {
-  const { name, category, type, timePerUnit, weeklyRule, tags } = req.body
+  const { name, category, type, timePerUnit, weeklyRule, tags, appliesTo } = req.body
   const { familyId } = req.user!
 
   if (!name || !category || !type) {
@@ -54,6 +54,14 @@ tasksRouter.post('/', async (req: AuthRequest, res: Response) => {
     }
   }
 
+  // Validate appliesTo - should be array of child IDs or empty for all children
+  let validatedAppliesTo: number[] = []
+  if (appliesTo !== undefined && appliesTo !== null) {
+    if (Array.isArray(appliesTo)) {
+      validatedAppliesTo = appliesTo.filter((id: any) => typeof id === 'number')
+    }
+  }
+
   const task = await prisma.task.create({
     data: {
       familyId,
@@ -63,6 +71,7 @@ tasksRouter.post('/', async (req: AuthRequest, res: Response) => {
       timePerUnit: timePerUnit || 30,
       weeklyRule: weeklyRule || {},
       tags: validatedTags,
+      appliesTo: validatedAppliesTo,
     },
   })
 
@@ -75,12 +84,28 @@ tasksRouter.post('/', async (req: AuthRequest, res: Response) => {
 
 /**
  * GET / - List all family tasks
+ * Query: ?childId=123 - Filter tasks applicable to specific child
  */
 tasksRouter.get('/', async (req: AuthRequest, res: Response) => {
   const { familyId } = req.user!
+  const childId = req.query.childId ? parseInt(req.query.childId as string) : undefined
+
+  let whereClause: any = { familyId }
+
+  // If childId specified, filter tasks that apply to this child
+  // appliesTo is empty array [] means applies to all children
+  if (childId) {
+    whereClause = {
+      familyId,
+      OR: [
+        { appliesTo: { equals: [] } }, // Empty array = all children
+        { appliesTo: { has: childId } }, // Contains this child ID
+      ],
+    }
+  }
 
   const tasks = await prisma.task.findMany({
-    where: { familyId },
+    where: whereClause,
     orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
   })
 
@@ -113,12 +138,12 @@ tasksRouter.get('/:id', async (req: AuthRequest, res: Response) => {
 
 /**
  * PUT /:id - Update task
- * Body: { name?, category?, type?, timePerUnit?, weeklyRule?, isActive?, tags? }
+ * Body: { name?, category?, type?, timePerUnit?, weeklyRule?, isActive?, tags?, appliesTo? }
  */
 tasksRouter.put('/:id', async (req: AuthRequest, res: Response) => {
   const id = parseInt(req.params.id as string)
   const { familyId } = req.user!
-  const { name, category, type, timePerUnit, weeklyRule, isActive, tags } = req.body
+  const { name, category, type, timePerUnit, weeklyRule, isActive, tags, appliesTo } = req.body
 
   // Check task exists and belongs to family
   const existingTask = await prisma.task.findFirst({
@@ -160,6 +185,16 @@ tasksRouter.put('/:id', async (req: AuthRequest, res: Response) => {
     }
   }
 
+  // Validate and process appliesTo if provided
+  let validatedAppliesTo
+  if (appliesTo !== undefined) {
+    if (appliesTo === null) {
+      validatedAppliesTo = []
+    } else if (Array.isArray(appliesTo)) {
+      validatedAppliesTo = appliesTo.filter((id: any) => typeof id === 'number')
+    }
+  }
+
   const task = await prisma.task.update({
     where: { id },
     data: {
@@ -170,6 +205,7 @@ tasksRouter.put('/:id', async (req: AuthRequest, res: Response) => {
       ...(weeklyRule !== undefined && { weeklyRule }),
       ...(isActive !== undefined && { isActive }),
       ...(validatedTags !== undefined && { tags: validatedTags }),
+      ...(validatedAppliesTo !== undefined && { appliesTo: validatedAppliesTo }),
     },
   })
 
@@ -297,9 +333,16 @@ tasksRouter.post('/publish', async (req: AuthRequest, res: Response) => {
 
       const dayTimeUsed = [0, 0, 0, 0, 0, 0, 0] // Time used per day (0=Sun, 6=Sat)
 
+      // Filter tasks that apply to this child
+      // appliesTo is empty array [] means applies to all children
+      const childTasks = tasks.filter(task => {
+        const appliesTo = task.appliesTo as number[] | null
+        return !appliesTo || appliesTo.length === 0 || appliesTo.includes(child.id)
+      })
+
       // Sort tasks by priority
       // Fixed tasks first, then flexible
-      const sortedTasks = [...tasks].sort((a, b) => {
+      const sortedTasks = [...childTasks].sort((a, b) => {
         if (a.type === 'fixed' && b.type !== 'fixed') return -1
         if (a.type !== 'fixed' && b.type === 'fixed') return 1
         return a.sortOrder - b.sortOrder

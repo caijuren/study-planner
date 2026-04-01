@@ -3,6 +3,6 @@
   "sub_project_type": "",
   "name": "儿童学习规划",
   "app_slug": "study-planner",
-  "version_description": "修复修改孩子信息404错误",
+  "version_description": "添加任务适用孩子字段",
   "preview_type": "pc"
 }

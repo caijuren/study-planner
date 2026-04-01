@@ -5,7 +5,7 @@
     "url": "/"
   },
   {
-    "pageKey": "i1uk41",
+    "pageKey": "e1258o",
     "title": "/child",
     "url": "/child"
   },
@@ -30,7 +30,7 @@
     "url": "/login"
   },
   {
-    "pageKey": "fy59ug",
+    "pageKey": "axhyzk",
     "title": "/parent",
     "url": "/parent"
   },
@@ -58,6 +58,11 @@
     "pageKey": "ParentSettings",
     "title": "Settings",
     "url": "/parent/settings"
+  },
+  {
+    "pageKey": "ParentStatistics",
+    "title": "Statistics",
+    "url": "/parent/statistics"
   },
   {
     "pageKey": "ParentTasks",

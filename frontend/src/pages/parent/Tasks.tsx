@@ -53,6 +53,12 @@ interface TaskTags {
   difficulty?: DifficultyTag;
 }
 
+interface Child {
+  id: number;
+  name: string;
+  avatar: string;
+}
+
 interface Task {
   id: string;
   name: string;
@@ -65,6 +71,7 @@ interface Task {
   frequencyValue: number;
   description?: string;
   tags?: TaskTags;
+  appliesTo?: number[]; // Empty array means all children
 }
 
 // Schema
@@ -83,7 +90,8 @@ const taskSchema = z.object({
     format: z.array(z.enum(['paper', 'tablet', 'app', 'reading', 'recite', 'exercise'])).optional(),
     participation: z.enum(['independent', 'accompany', 'interactive', 'parent']).optional(),
     difficulty: z.enum(['basic', 'advanced', 'challenge']).optional(),
-  }).optional()
+  }).optional(),
+  appliesTo: z.array(z.number()).optional(), // Empty array means all children
 });
 
 type TaskFormData = z.infer<typeof taskSchema>;
@@ -149,8 +157,14 @@ const mockTasks: Task[] = [
 ];
 
 // API functions
-async function fetchTasks(): Promise<Task[]> {
-  const { data } = await apiClient.get('/tasks');
+async function fetchChildren(): Promise<Child[]> {
+  const { data } = await apiClient.get('/auth/children');
+  return data.data || [];
+}
+
+async function fetchTasks(childId?: number): Promise<Task[]> {
+  const params = childId ? `?childId=${childId}` : '';
+  const { data } = await apiClient.get(`/tasks${params}`);
   return data.data || mockTasks;
 }
 
@@ -173,6 +187,7 @@ export default function TasksPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [selectedChildFilter, setSelectedChildFilter] = useState<number | 'all'>('all');
 
   const queryClient = useQueryClient();
 
@@ -195,7 +210,8 @@ export default function TasksPage() {
       frequency: 'daily',
       frequencyValue: 1,
       description: '',
-      tags: {}
+      tags: {},
+      appliesTo: []
     }
   });
 
@@ -204,9 +220,15 @@ export default function TasksPage() {
   const selectedUnit = watch('unit');
   const selectedFrequency = watch('frequency');
 
+  // Fetch children for filter and appliesTo selection
+  const { data: children = [] } = useQuery({
+    queryKey: ['children'],
+    queryFn: fetchChildren,
+  });
+
   const { data: tasks = mockTasks, isLoading } = useQuery({
-    queryKey: ['tasks'],
-    queryFn: fetchTasks,
+    queryKey: ['tasks', selectedChildFilter],
+    queryFn: () => fetchTasks(selectedChildFilter === 'all' ? undefined : selectedChildFilter),
     initialData: mockTasks
   });
 
@@ -270,7 +292,8 @@ export default function TasksPage() {
       frequency: task.frequency,
       frequencyValue: task.frequencyValue,
       description: task.description || '',
-      tags: task.tags || {}
+      tags: task.tags || {},
+      appliesTo: task.appliesTo || []
     });
     setShowAddForm(true);
   };
@@ -303,6 +326,18 @@ export default function TasksPage() {
       : `每周 ${task.frequencyValue} 次`;
     const tags = task.tags || {};
 
+    // Get applicable children names
+    const getApplicableChildren = () => {
+      if (!task.appliesTo || task.appliesTo.length === 0) {
+        return '所有孩子';
+      }
+      const names = task.appliesTo.map(id => {
+        const child = children.find(c => c.id === id);
+        return child?.name || '';
+      }).filter(Boolean);
+      return names.join('、') || '指定孩子';
+    };
+
     return (
       <motion.div
         layout
@@ -316,8 +351,12 @@ export default function TasksPage() {
               <Icon className="w-5 h-5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h4 className="font-semibold text-gray-900 truncate">{task.name}</h4>
+                {/* Applies To Badge */}
+                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                  {getApplicableChildren()}
+                </span>
                 {/* Subject Tag */}
                 {tags.subject && (
                   <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", subjectConfig[tags.subject].bgColor, subjectConfig[tags.subject].color)}>
@@ -442,7 +481,7 @@ export default function TasksPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">任务配置</h1>
           <p className="text-gray-500 mt-1">管理学习任务的模板和分类</p>
@@ -455,6 +494,39 @@ export default function TasksPage() {
           新建任务
         </Button>
       </div>
+
+      {/* Child Filter Tabs */}
+      {children.length > 0 && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-2">
+          <span className="text-sm text-gray-500 whitespace-nowrap">查看:</span>
+          <button
+            onClick={() => setSelectedChildFilter('all')}
+            className={cn(
+              "px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap",
+              selectedChildFilter === 'all'
+                ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/25'
+                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+            )}
+          >
+            全部任务
+          </button>
+          {children.map(child => (
+            <button
+              key={child.id}
+              onClick={() => setSelectedChildFilter(child.id)}
+              className={cn(
+                "px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-1.5 whitespace-nowrap",
+                selectedChildFilter === child.id
+                  ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/25'
+                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+              )}
+            >
+              <span>{child.avatar}</span>
+              <span>{child.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Task Lists */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -508,6 +580,56 @@ export default function TasksPage() {
                       <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>
                     )}
                   </div>
+
+                  {/* Applies To - Child Selection */}
+                  {children.length > 0 && (
+                    <div>
+                      <Label className="text-sm font-medium text-gray-700">适用孩子</Label>
+                      <div className="mt-2 space-y-2">
+                        <label className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors">
+                          <input
+                            type="checkbox"
+                            checked={watch('appliesTo')?.length === 0}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setValue('appliesTo', [], { shouldDirty: true });
+                              }
+                            }}
+                            className="w-5 h-5 rounded border-gray-300 text-purple-500 focus:ring-purple-500"
+                          />
+                          <span className="text-sm text-gray-700">所有孩子（通用任务）</span>
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {children.map(child => {
+                            const appliesTo = watch('appliesTo') || [];
+                            const isSelected = appliesTo.includes(child.id);
+                            return (
+                              <label
+                                key={child.id}
+                                className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50 transition-colors"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    const current = watch('appliesTo') || [];
+                                    if (e.target.checked) {
+                                      setValue('appliesTo', [...current, child.id], { shouldDirty: true });
+                                    } else {
+                                      setValue('appliesTo', current.filter(id => id !== child.id), { shouldDirty: true });
+                                    }
+                                  }}
+                                  className="w-5 h-5 rounded border-gray-300 text-purple-500 focus:ring-purple-500"
+                                />
+                                <span className="text-lg">{child.avatar}</span>
+                                <span className="text-sm text-gray-700">{child.name}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Category */}
                   <div>
