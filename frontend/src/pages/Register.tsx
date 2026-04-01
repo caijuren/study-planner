@@ -5,44 +5,40 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+
+type UserRole = 'parent' | 'child';
 
 export default function Register() {
-  const { register: registerUser, isLoading } = useAuth();
+  const { register, isLoading } = useAuth();
+  const [role, setRole] = useState<UserRole>('parent');
   const [formData, setFormData] = useState({
-    familyName: '',
-    familyCode: '',
-    parentName: '',
-    parentPassword: '',
+    username: '',
+    password: '',
     confirmPassword: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (formData.parentPassword !== formData.confirmPassword) {
+    
+    if (formData.password !== formData.confirmPassword) {
       toast.error('两次输入的密码不一致');
       return;
     }
-
-    if (formData.parentPassword.length < 6) {
+    
+    if (formData.password.length < 6) {
       toast.error('密码至少6位');
       return;
     }
 
-    if (formData.familyCode.length < 4) {
-      toast.error('家庭代码至少4位');
-      return;
-    }
-
     try {
-      await registerUser({
-        familyName: formData.familyName,
-        familyCode: formData.familyCode,
-        parentName: formData.parentName,
-        parentPassword: formData.parentPassword
+      await register({
+        username: formData.username,
+        password: formData.password,
+        role
       });
       toast.success('注册成功！');
-    } catch (error) {
+    } catch {
       toast.error('注册失败，请重试');
     }
   };
@@ -68,44 +64,52 @@ export default function Register() {
             <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-purple-200">
               <span className="text-2xl">🐛</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-800">创建家庭账号</h1>
+            <h1 className="text-2xl font-bold text-gray-800">创建账号</h1>
             <p className="text-gray-500 mt-1 text-sm">开始你的学习之旅</p>
+          </div>
+
+          {/* Role selection */}
+          <div className="mb-6">
+            <Label className="text-sm font-medium text-gray-700 mb-3 block">选择身份</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setRole('parent')}
+                className={cn(
+                  "flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all",
+                  role === 'parent'
+                    ? "border-purple-500 bg-purple-50 text-purple-700"
+                    : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                )}
+              >
+                <span className="text-2xl">👨‍👩‍👧</span>
+                <span className="text-sm font-medium">家长</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole('child')}
+                className={cn(
+                  "flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all",
+                  role === 'child'
+                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                    : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                )}
+              >
+                <span className="text-2xl">🧒</span>
+                <span className="text-sm font-medium">孩子</span>
+              </button>
+            </div>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label className="text-sm font-medium text-gray-700">家庭名称</Label>
+              <Label className="text-sm font-medium text-gray-700">用户名</Label>
               <Input
                 type="text"
-                placeholder="如：快乐学习之家"
-                value={formData.familyName}
-                onChange={(e) => setFormData({ ...formData, familyName: e.target.value })}
-                className="mt-1.5 h-12 rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500"
-                required
-              />
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium text-gray-700">家庭代码</Label>
-              <Input
-                type="text"
-                placeholder="如：happy2024（用于家庭成员登录）"
-                value={formData.familyCode}
-                onChange={(e) => setFormData({ ...formData, familyCode: e.target.value })}
-                className="mt-1.5 h-12 rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500"
-                required
-              />
-              <p className="text-xs text-gray-400 mt-1">家庭成员使用此代码登录</p>
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium text-gray-700">家长姓名</Label>
-              <Input
-                type="text"
-                placeholder="如：张妈妈"
-                value={formData.parentName}
-                onChange={(e) => setFormData({ ...formData, parentName: e.target.value })}
+                placeholder="输入用户名"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                 className="mt-1.5 h-12 rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500"
                 required
               />
@@ -116,8 +120,8 @@ export default function Register() {
               <Input
                 type="password"
                 placeholder="至少6位密码"
-                value={formData.parentPassword}
-                onChange={(e) => setFormData({ ...formData, parentPassword: e.target.value })}
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 className="mt-1.5 h-12 rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500"
                 required
               />
@@ -140,7 +144,7 @@ export default function Register() {
               disabled={isLoading}
               className="w-full h-12 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-medium shadow-lg shadow-purple-200 mt-2"
             >
-              {isLoading ? '注册中...' : '创建家庭账号'}
+              {isLoading ? '注册中...' : '创建账号'}
             </Button>
           </form>
 

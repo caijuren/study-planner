@@ -15,8 +15,7 @@ export interface AuthState {
 }
 
 export interface LoginCredentials {
-  familyCode: string;
-  userName: string;
+  username: string;
   password: string;
 }
 
@@ -27,10 +26,9 @@ export interface ChildLoginCredentials {
 }
 
 export interface RegisterData {
-  familyName: string;
-  familyCode: string;
-  parentName: string;
-  parentPassword: string;
+  username: string;
+  password: string;
+  role?: 'parent' | 'child';
 }
 
 export interface AuthResponse {

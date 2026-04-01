@@ -11,127 +11,124 @@ export const authRouter: Router = Router()
 // ============================================
 
 /**
- * POST /register - Register a new family with parent
- * Body: { familyName, familyCode, parentName, parentPassword }
+ * POST /register - Register a new user (simplified)
+ * Body: { username, password, role }
  */
 authRouter.post('/register', async (req, res: Response) => {
   try {
-    const { familyName, familyCode, parentName, parentPassword } = req.body
+    const { username, password, role = 'parent' } = req.body
 
     // Validate required fields
-    if (!familyName || !familyCode || !parentName || !parentPassword) {
-      throw new AppError(400, 'Missing required fields: familyName, familyCode, parentName, parentPassword')
+    if (!username || !password) {
+      throw new AppError(400, '用户名和密码不能为空')
     }
 
-    // Check if family code already exists
-    const existingFamily = await prisma.family.findUnique({
-      where: { familyCode },
+    if (password.length < 6) {
+      throw new AppError(400, '密码至少6位')
+    }
+
+    // Check if username already exists
+    const existingUser = await prisma.user.findFirst({
+      where: { name: username },
     })
 
-    if (existingFamily) {
-      throw new AppError(409, 'Family code already exists. Please choose a different code.')
+    if (existingUser) {
+      throw new AppError(409, '用户名已存在')
     }
 
     // Hash password
-    const passwordHash = await bcrypt.hash(parentPassword, 12)
+    const passwordHash = await bcrypt.hash(password, 12)
 
-    // Create family and parent user in a transaction
-    const result = await prisma.$transaction(async (tx) => {
-      // Create family
-      const family = await tx.family.create({
+    // Create or get default family for the user
+    let family = await prisma.family.findFirst({
+      where: { familyCode: 'default' }
+    })
+
+    if (!family) {
+      family = await prisma.family.create({
         data: {
-          name: familyName,
-          familyCode,
+          name: '默认家庭',
+          familyCode: 'default',
           settings: {
-            dailyTimeLimit: 210, // 210 minutes default
+            dailyTimeLimit: 210,
             dingtalkWebhook: '',
           },
         },
       })
+    }
 
-      // Create parent user
-      const parent = await tx.user.create({
-        data: {
-          name: parentName,
-          role: 'parent',
-          passwordHash,
-          familyId: family.id,
-          status: 'active',
-        },
-      })
-
-      return { family, parent }
+    // Create user
+    const user = await prisma.user.create({
+      data: {
+        name: username,
+        role: role,
+        passwordHash,
+        familyId: family.id,
+        status: 'active',
+      },
     })
 
     // Generate JWT token
     const token = generateToken({
-      id: result.parent.id,
-      name: result.parent.name,
-      role: result.parent.role,
-      familyId: result.family.id,
-      avatar: result.parent.avatar,
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      familyId: family.id,
+      avatar: user.avatar,
     })
 
     res.status(201).json({
       status: 'success',
-      message: 'Family registered successfully',
+      message: '注册成功',
       data: {
         token,
         user: {
-          id: result.parent.id,
-          name: result.parent.name,
-          role: result.parent.role,
-          familyId: result.family.id,
-          familyName: result.family.name,
-          familyCode: result.family.familyCode,
-          avatar: result.parent.avatar,
+          id: user.id,
+          name: user.name,
+          role: user.role,
+          familyId: family.id,
+          familyName: family.name,
+          familyCode: family.familyCode,
+          avatar: user.avatar,
         },
       },
     })
   } catch (error: any) {
     console.error('Register error:', error)
-    throw new AppError(500, `Database error: ${error.message}`)
+    if (error instanceof AppError) throw error
+    throw new AppError(500, `注册失败: ${error.message}`)
   }
 })
 
 /**
- * POST /login - Login for parent/child with password
- * Body: { familyCode, userName, password }
+ * POST /login - Login with username and password (simplified)
+ * Body: { username, password }
  */
 authRouter.post('/login', async (req, res: Response) => {
-  const { familyCode, userName, password } = req.body
+  const { username, password } = req.body
 
-  if (!familyCode || !userName || !password) {
-    throw new AppError(400, 'Missing required fields: familyCode, userName, password')
+  if (!username || !password) {
+    throw new AppError(400, '用户名和密码不能为空')
   }
 
-  // Find family
-  const family = await prisma.family.findUnique({
-    where: { familyCode },
-  })
-
-  if (!family) {
-    throw new AppError(401, 'Invalid family code')
-  }
-
-  // Find user in family
+  // Find user by username
   const user = await prisma.user.findFirst({
     where: {
-      familyId: family.id,
-      name: userName,
+      name: username,
       status: 'active',
     },
+    include: { family: true }
   })
 
   if (!user) {
-    throw new AppError(401, 'Invalid username or password')
+    throw new AppError(401, '用户名或密码错误')
   }
 
   // Verify password
   const isPasswordValid = await bcrypt.compare(password, user.passwordHash)
 
   if (!isPasswordValid) {
-    throw new AppError(401, 'Invalid username or password')
+    throw new AppError(401, '用户名或密码错误')
   }
 
   // Generate JWT token
@@ -139,22 +136,22 @@ authRouter.post('/login', async (req, res: Response) => {
     id: user.id,
     name: user.name,
     role: user.role,
-    familyId: family.id,
+    familyId: user.familyId,
     avatar: user.avatar,
   })
 
   res.json({
     status: 'success',
-    message: 'Login successful',
+    message: '登录成功',
     data: {
       token,
       user: {
         id: user.id,
         name: user.name,
         role: user.role,
-        familyId: family.id,
-        familyName: family.name,
-        familyCode: family.familyCode,
+        familyId: user.familyId,
+        familyName: user.family.name,
+        familyCode: user.family.familyCode,
         avatar: user.avatar,
       },
     },
@@ -316,5 +313,32 @@ authRouter.get('/me', authMiddleware, async (req: AuthRequest, res: Response) =>
       familyName: user.family.name,
       familyCode: user.family.familyCode,
     },
+  })
+})
+
+/**
+ * GET /children - Get all children in the family
+ * Auth required, parent only
+ */
+authRouter.get('/children', authMiddleware, requireRole('parent'), async (req: AuthRequest, res: Response) => {
+  const { familyId } = req.user!
+
+  const children = await prisma.user.findMany({
+    where: {
+      familyId,
+      role: 'child',
+      status: 'active',
+    },
+    select: {
+      id: true,
+      name: true,
+      avatar: true,
+      createdAt: true,
+    },
+  })
+
+  res.json({
+    status: 'success',
+    data: children,
   })
 })
