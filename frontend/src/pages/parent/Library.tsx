@@ -285,10 +285,6 @@ export default function LibraryPage() {
     reader.readAsDataURL(file);
   };
 
-  const getTypeLabel = (type: string) => {
-    return bookTypes.find((t) => t.value === type)?.label || type;
-  };
-
   if (isLoading) {
     return (
       <div className="space-y-6">

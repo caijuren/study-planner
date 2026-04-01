@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   BookOpen,
   Clock,
   TrendingUp,
-  CheckCircle,
-  X,
   Plus,
   Minus,
 } from 'lucide-react';
@@ -118,7 +116,7 @@ export default function ReadingPage() {
   const progressMutation = useMutation({
     mutationFn: ({ id, pages }: { id: number; pages: number }) =>
       updateProgress(id, pages),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reading'] });
       queryClient.invalidateQueries({ queryKey: ['readingStats'] });
       queryClient.invalidateQueries({ queryKey: ['library'] });
