@@ -3,6 +3,6 @@
   "sub_project_type": "",
   "name": "儿童学习规划",
   "app_slug": "study-planner",
-  "version_description": "修复TypeScript构建错误",
+  "version_description": "修复前端构建错误",
   "preview_type": "pc"
 }
