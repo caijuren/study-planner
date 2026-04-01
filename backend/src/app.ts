@@ -12,7 +12,8 @@ import { systemRouter } from './modules/system'
 import { authRouter } from './modules/auth'
 import { tasksRouter } from './modules/tasks'
 import { plansRouter } from './modules/plans'
-import { booksRouter } from './modules/books'
+import { libraryRouter } from './modules/library'
+import { readingRouter } from './modules/reading'
 import { reportsRouter } from './modules/reports'
 import { statisticsRouter } from './modules/statistics'
 
@@ -43,7 +44,8 @@ export const createApp = (): Application => {
   app.use(`${env.API_PREFIX}/auth`, authRouter)
   app.use(`${env.API_PREFIX}/tasks`, tasksRouter)
   app.use(`${env.API_PREFIX}/plans`, plansRouter)
-  app.use(`${env.API_PREFIX}/books`, booksRouter)
+  app.use(`${env.API_PREFIX}/library`, libraryRouter)
+  app.use(`${env.API_PREFIX}/reading`, readingRouter)
   app.use(`${env.API_PREFIX}/reports`, reportsRouter)
   app.use(`${env.API_PREFIX}/statistics`, statisticsRouter)
 

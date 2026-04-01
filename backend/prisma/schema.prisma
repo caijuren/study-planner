@@ -20,6 +20,7 @@ model Family {
   tasks       Task[]
   weeklyPlans WeeklyPlan[]
   books       Book[]
+  activeReadings ActiveReading[]
   achievements Achievement[]
 
   @@map("families")
@@ -41,6 +42,7 @@ model User {
   weeklyPlans  WeeklyPlan[]
   dailyCheckins DailyCheckin[]
   readingLogs  ReadingLog[]
+  activeReadings ActiveReading[]
   achievementLogs AchievementLog[]
 
   @@map("users")
@@ -107,26 +109,69 @@ model DailyCheckin {
   @@map("daily_checkins")
 }
 
-// 图书表
+// 图书表（图书馆 - 家庭藏书档案）
 model Book {
-  id         Int      @id @default(autoincrement())
-  familyId   Int      @map("family_id")
-  name       String   @db.VarChar(200)
-  author     String   @default("") @db.VarChar(100)
-  type       String   @default("fiction") @db.VarChar(30) // fiction, nonfiction, science, history
-  coverUrl   String   @default("") @map("cover_url") @db.VarChar(500)
-  target     Int      @default(0)          // 目标阅读本数/页数
-  status     String   @default("active") @db.VarChar(20)
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id            Int      @id @default(autoincrement())
+  familyId      Int      @map("family_id")
+  name          String   @db.VarChar(200)
+  author        String   @default("") @db.VarChar(100)
+  type          String   @default("fiction") @db.VarChar(30) // fiction, nonfiction, science, history
+  characterTag  String   @default("") @map("character_tag") @db.VarChar(50) // 性格养成标签
+  coverUrl      String   @default("") @map("cover_url") @db.VarChar(500)
+  totalPages    Int      @default(0) @map("total_pages") // 书籍总页数
+  readCount     Int      @default(0) @map("read_count") // 累计阅读次数
+  status        String   @default("active") @db.VarChar(20)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  family     Family   @relation(fields: [familyId], references: [id])
-  readingLogs ReadingLog[]
+  family        Family   @relation(fields: [familyId], references: [id])
+  readingLogs   ReadingLog[]
+  activeReadings ActiveReading[]
 
   @@map("books")
 }
 
-// 阅读记录
+// 当前在读记录（阅读管理模块）
+model ActiveReading {
+  id            Int      @id @default(autoincrement())
+  familyId      Int      @map("family_id")
+  childId       Int      @map("child_id")
+  bookId        Int      @map("book_id")
+  readPages     Int      @default(0) @map("read_pages") // 已读页数
+  readCount     Int      @default(0) @map("read_count") // 本次阅读次数
+  status        String   @default("reading") @db.VarChar(20) // reading, completed
+  startedAt     DateTime @default(now()) @map("started_at")
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  family        Family   @relation(fields: [familyId], references: [id])
+  child         User     @relation(fields: [childId], references: [id])
+  book          Book     @relation(fields: [bookId], references: [id])
+  progressLogs  ReadingProgressLog[]
+
+  @@unique([childId, bookId, status]) // 一个孩子同一本书只能有一个在读记录
+  @@map("active_readings")
+}
+
+// 阅读进度记录（每次更新进度都记录）
+model ReadingProgressLog {
+  id              Int      @id @default(autoincrement())
+  familyId        Int      @map("family_id")
+  childId         Int      @map("child_id")
+  bookId          Int      @map("book_id")
+  activeReadingId Int      @map("active_reading_id")
+  pagesRead       Int      @map("pages_read") // 本次读的页数
+  totalReadPages  Int      @map("total_read_pages") // 累计已读页数
+  readDate        DateTime @map("read_date")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  activeReading   ActiveReading @relation(fields: [activeReadingId], references: [id])
+
+  @@map("reading_progress_logs")
+}
+
+// 历史阅读记录（归档）
 model ReadingLog {
   id         Int      @id @default(autoincrement())
   familyId   Int      @map("family_id")
