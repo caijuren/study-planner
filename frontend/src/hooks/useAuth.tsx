@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: true,
       });
     } catch (err) {
-      // Token 无效，清除状态
+      // Token 无效，清除状态，但不跳转（让用户留在当前页面）
       console.error('Token verification failed:', err);
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem('auth_token');

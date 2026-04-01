@@ -1,6 +1,8 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { useEffect } from 'react';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Home, BookOpen, Trophy, BarChart3 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 const navItems = [
   { path: '/child', label: '首页', icon: Home, emoji: '🏠' },
@@ -10,6 +12,17 @@ const navItems = [
 ];
 
 export default function ChildLayout() {
+  const { isAuthenticated, isInitializing } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // 路由守卫：未登录时跳转到登录页
+  useEffect(() => {
+    if (!isInitializing && !isAuthenticated) {
+      navigate('/login', { replace: true, state: { from: location } });
+    }
+  }, [isInitializing, isAuthenticated, navigate, location]);
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Main Content */}

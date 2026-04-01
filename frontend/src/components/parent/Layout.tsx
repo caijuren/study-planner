@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -41,9 +41,16 @@ const overlayVariants = {
 
 export default function ParentLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated, isInitializing } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // 路由守卫：未登录时跳转到登录页
+  useEffect(() => {
+    if (!isInitializing && !isAuthenticated) {
+      navigate('/login', { replace: true, state: { from: location } });
+    }
+  }, [isInitializing, isAuthenticated, navigate, location]);
 
   const handleLogout = () => {
     logout();
