@@ -67,8 +67,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await apiClient.post<AuthResponse>('/auth/login', credentials);
-      const { user, token } = response.data;
+      const response = await apiClient.post('/auth/login', credentials);
+      const { user, token } = response.data.data;
       setState({ user, token, isAuthenticated: true });
       redirectByRole(user);
     } catch (err) {
@@ -84,8 +84,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await apiClient.post<AuthResponse>('/auth/child-login', credentials);
-      const { user, token } = response.data;
+      const response = await apiClient.post('/auth/child-login', credentials);
+      const { user, token } = response.data.data;
       setState({ user, token, isAuthenticated: true });
       redirectByRole(user);
     } catch (err) {
@@ -101,8 +101,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await apiClient.post<AuthResponse>('/auth/register', data);
-      const { user, token } = response.data;
+      const response = await apiClient.post('/auth/register', data);
+      const { user, token } = response.data.data;
       setState({ user, token, isAuthenticated: true });
       redirectByRole(user);
     } catch (err) {
