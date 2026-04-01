@@ -15,78 +15,83 @@ export const authRouter: Router = Router()
  * Body: { familyName, familyCode, parentName, parentPassword }
  */
 authRouter.post('/register', async (req, res: Response) => {
-  const { familyName, familyCode, parentName, parentPassword } = req.body
+  try {
+    const { familyName, familyCode, parentName, parentPassword } = req.body
 
-  // Validate required fields
-  if (!familyName || !familyCode || !parentName || !parentPassword) {
-    throw new AppError(400, 'Missing required fields: familyName, familyCode, parentName, parentPassword')
-  }
+    // Validate required fields
+    if (!familyName || !familyCode || !parentName || !parentPassword) {
+      throw new AppError(400, 'Missing required fields: familyName, familyCode, parentName, parentPassword')
+    }
 
-  // Check if family code already exists
-  const existingFamily = await prisma.family.findUnique({
-    where: { familyCode },
-  })
+    // Check if family code already exists
+    const existingFamily = await prisma.family.findUnique({
+      where: { familyCode },
+    })
 
-  if (existingFamily) {
-    throw new AppError(409, 'Family code already exists. Please choose a different code.')
-  }
+    if (existingFamily) {
+      throw new AppError(409, 'Family code already exists. Please choose a different code.')
+    }
 
-  // Hash password
-  const passwordHash = await bcrypt.hash(parentPassword, 12)
+    // Hash password
+    const passwordHash = await bcrypt.hash(parentPassword, 12)
 
-  // Create family and parent user in a transaction
-  const result = await prisma.$transaction(async (tx) => {
-    // Create family
-    const family = await tx.family.create({
+    // Create family and parent user in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create family
+      const family = await tx.family.create({
+        data: {
+          name: familyName,
+          familyCode,
+          settings: {
+            dailyTimeLimit: 210, // 210 minutes default
+            dingtalkWebhook: '',
+          },
+        },
+      })
+
+      // Create parent user
+      const parent = await tx.user.create({
+        data: {
+          name: parentName,
+          role: 'parent',
+          passwordHash,
+          familyId: family.id,
+          status: 'active',
+        },
+      })
+
+      return { family, parent }
+    })
+
+    // Generate JWT token
+    const token = generateToken({
+      id: result.parent.id,
+      name: result.parent.name,
+      role: result.parent.role,
+      familyId: result.family.id,
+      avatar: result.parent.avatar,
+    })
+
+    res.status(201).json({
+      status: 'success',
+      message: 'Family registered successfully',
       data: {
-        name: familyName,
-        familyCode,
-        settings: {
-          dailyTimeLimit: 210, // 210 minutes default
-          dingtalkWebhook: '',
+        token,
+        user: {
+          id: result.parent.id,
+          name: result.parent.name,
+          role: result.parent.role,
+          familyId: result.family.id,
+          familyName: result.family.name,
+          familyCode: result.family.familyCode,
+          avatar: result.parent.avatar,
         },
       },
     })
-
-    // Create parent user
-    const parent = await tx.user.create({
-      data: {
-        name: parentName,
-        role: 'parent',
-        passwordHash,
-        familyId: family.id,
-        status: 'active',
-      },
-    })
-
-    return { family, parent }
-  })
-
-  // Generate JWT token
-  const token = generateToken({
-    id: result.parent.id,
-    name: result.parent.name,
-    role: result.parent.role,
-    familyId: result.family.id,
-    avatar: result.parent.avatar,
-  })
-
-  res.status(201).json({
-    status: 'success',
-    message: 'Family registered successfully',
-    data: {
-      token,
-      user: {
-        id: result.parent.id,
-        name: result.parent.name,
-        role: result.parent.role,
-        familyId: result.family.id,
-        familyName: result.family.name,
-        familyCode: result.family.familyCode,
-        avatar: result.parent.avatar,
-      },
-    },
-  })
+  } catch (error: any) {
+    console.error('Register error:', error)
+    throw new AppError(500, `Database error: ${error.message}`)
+  }
 })
 
 /**
