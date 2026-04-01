@@ -1,8 +1,8 @@
 {
   "project_type": "web",
   "sub_project_type": "",
-  "name": "学习规划助手",
-  "app_slug": "study-planner",
-  "version_description": "准备Vercel和Render分离部署",
+  "name": "小书虫学习",
+  "app_slug": "xiaoshuchong",
+  "version_description": "完成所有后台页面UI现代化设计",
   "preview_type": "pc"
 }

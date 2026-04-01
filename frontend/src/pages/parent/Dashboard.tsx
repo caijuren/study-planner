@@ -8,7 +8,9 @@ import {
   CheckCircle2,
   TrendingUp,
   Users,
-  ChevronRight
+  ChevronRight,
+  Target,
+  Award
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -18,7 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiClient } from '@/lib/api-client';
-import { FadeIn, Stagger, fadeUp } from '@/components/MotionPrimitives';
+import { cn } from '@/lib/utils';
 
 // Types
 interface Child {
@@ -154,55 +156,51 @@ export default function ParentDashboard() {
     {
       title: '总任务数',
       value: stats?.totalTasks || 0,
-      icon: CheckCircle2,
-      color: 'from-[#FFB5BA] to-[#FFB5BA]/60',
-      bgColor: 'bg-[#FFB5BA]/10',
-      textColor: 'text-[#FFB5BA]'
+      icon: Target,
+      gradient: 'from-purple-500 to-violet-500',
+      lightColor: 'bg-purple-50 text-purple-600'
     },
     {
       title: '本周完成率',
       value: `${stats?.weeklyCompletionRate || 0}%`,
       icon: TrendingUp,
-      color: 'from-[#7DD3FC] to-[#7DD3FC]/60',
-      bgColor: 'bg-[#7DD3FC]/10',
-      textColor: 'text-[#7DD3FC]'
+      gradient: 'from-blue-500 to-cyan-500',
+      lightColor: 'bg-blue-50 text-blue-600'
     },
     {
       title: '今日学习时长',
       value: `${stats?.todayStudyMinutes || 0}分钟`,
       icon: Clock,
-      color: 'from-[#7EDACA] to-[#7EDACA]/60',
-      bgColor: 'bg-[#7EDACA]/10',
-      textColor: 'text-[#7EDACA]'
+      gradient: 'from-emerald-500 to-teal-500',
+      lightColor: 'bg-emerald-50 text-emerald-600'
     },
     {
       title: '阅读书籍',
       value: stats?.booksRead || 0,
       icon: BookOpen,
-      color: 'from-[#C4B5FD] to-[#C4B5FD]/60',
-      bgColor: 'bg-[#C4B5FD]/10',
-      textColor: 'text-[#C4B5FD]'
+      gradient: 'from-orange-500 to-amber-500',
+      lightColor: 'bg-orange-50 text-orange-600'
     }
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">概览</h1>
-          <p className="text-muted-foreground text-sm mt-1">查看孩子们的学习进度和活动</p>
+          <h1 className="text-2xl font-bold text-gray-900">概览</h1>
+          <p className="text-gray-500 mt-1">查看孩子们的学习进度和活动</p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline" className="gap-2">
+        <div className="flex gap-3">
+          <Button asChild variant="outline" className="rounded-xl h-11 border-gray-200 hover:bg-gray-50">
             <Link to="/parent/tasks">
-              <Plus className="size-4" />
+              <Plus className="size-4 mr-2" />
               <span>添加任务</span>
             </Link>
           </Button>
-          <Button asChild className="gap-2 bg-gradient-to-r from-[#FFB5BA] to-[#7DD3FC] hover:opacity-90">
+          <Button asChild className="rounded-xl h-11 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-lg shadow-purple-500/25">
             <Link to="/parent/plans">
-              <CalendarPlus className="size-4" />
+              <CalendarPlus className="size-4 mr-2" />
               <span>发布下周计划</span>
             </Link>
           </Button>
@@ -210,44 +208,52 @@ export default function ParentDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <Stagger stagger={0.1} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((stat) => (
-          <FadeIn key={stat.title} variants={fadeUp}>
-            <Card className="relative overflow-hidden">
-              <CardContent className="p-4">
-                <div className={`size-10 rounded-lg ${stat.bgColor} flex items-center justify-center mb-3`}>
-                  <stat.icon className={`size-5 ${stat.textColor}`} />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {statCards.map((stat, index) => (
+          <motion.div
+            key={stat.title}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+          >
+            <Card className="relative overflow-hidden border-0 shadow-lg shadow-gray-200/50 rounded-2xl">
+              <CardContent className="p-5">
+                <div className={cn("size-11 rounded-xl flex items-center justify-center mb-4 bg-gradient-to-br", stat.gradient)}>
+                  <stat.icon className="size-5 text-white" />
                 </div>
-                <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                <p className="text-sm text-muted-foreground">{stat.title}</p>
+                <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-sm text-gray-500 mt-1">{stat.title}</p>
               </CardContent>
-              <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${stat.color} opacity-10 rounded-full -translate-y-6 translate-x-6`} />
+              <div className={cn("absolute top-0 right-0 w-32 h-32 bg-gradient-to-br opacity-5 rounded-full -translate-y-8 translate-x-8", stat.gradient)} />
             </Card>
-          </FadeIn>
+          </motion.div>
         ))}
-      </Stagger>
+      </div>
 
-      {/* Children Overview */}
+      {/* Children Overview & Recent Activity */}
       <div className="grid lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Users className="size-5 text-primary" />
+        {/* Children Overview */}
+        <Card className="border-0 shadow-lg shadow-gray-200/50 rounded-3xl overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between pb-4 pt-6 px-6">
+            <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                <Users className="size-4 text-white" />
+              </div>
               孩子概览
             </CardTitle>
-            <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
+            <Button variant="ghost" size="sm" asChild className="text-gray-500 hover:text-gray-900">
               <Link to="/parent/children">
                 查看全部
                 <ChevronRight className="size-4 ml-1" />
               </Link>
             </Button>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="px-6 pb-6 space-y-4">
             {childrenLoading ? (
               <>
                 {[1, 2].map((i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <Skeleton className="size-10 rounded-full" />
+                    <Skeleton className="size-12 rounded-xl" />
                     <div className="flex-1 space-y-2">
                       <Skeleton className="h-4 w-24" />
                       <Skeleton className="h-2 w-full" />
@@ -256,34 +262,36 @@ export default function ParentDashboard() {
                 ))}
               </>
             ) : (
-              children?.map((child) => (
+              children?.map((child, index) => (
                 <motion.div
                   key={child.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                  transition={{ delay: index * 0.1 }}
+                  className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50/50 hover:bg-gray-50 transition-colors"
                 >
-                  <Avatar className="size-10">
+                  <Avatar className="size-12 ring-2 ring-white shadow-md">
                     <AvatarImage src={child.avatar} />
-                    <AvatarFallback className="bg-primary/20 text-primary font-medium">
+                    <AvatarFallback className="bg-gradient-to-br from-purple-500 to-blue-500 text-white font-semibold">
                       {child.name.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-foreground">{child.name}</span>
-                      <span className="text-sm text-muted-foreground">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold text-gray-900">{child.name}</span>
+                      <span className="text-sm text-gray-500">
                         今日 {child.todayMinutes}分钟
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Progress value={child.weeklyProgress} className="flex-1 h-1.5" />
-                      <span className="text-xs text-muted-foreground w-8">
+                    <div className="flex items-center gap-3">
+                      <Progress value={child.weeklyProgress} className="flex-1 h-2 bg-gray-200" />
+                      <span className="text-sm font-medium text-gray-700 w-10">
                         {child.weeklyProgress}%
                       </span>
                     </div>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Badge variant="secondary" className="text-xs">
+                    <div className="flex items-center gap-2 mt-2">
+                      <Badge variant="secondary" className="text-xs bg-white border border-gray-100">
+                        <CheckCircle2 className="size-3 mr-1" />
                         {child.completedTasks}/{child.totalTasks} 任务
                       </Badge>
                     </div>
@@ -295,16 +303,21 @@ export default function ParentDashboard() {
         </Card>
 
         {/* Recent Activity */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg">最近活动</CardTitle>
+        <Card className="border-0 shadow-lg shadow-gray-200/50 rounded-3xl overflow-hidden">
+          <CardHeader className="flex flex-row items-center justify-between pb-4 pt-6 px-6">
+            <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-400 to-amber-400 flex items-center justify-center">
+                <Award className="size-4 text-white" />
+              </div>
+              最近活动
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-6 pb-6">
             {activitiesLoading ? (
               <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
+                {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="flex items-start gap-3">
-                    <Skeleton className="size-8 rounded-full" />
+                    <Skeleton className="size-10 rounded-xl" />
                     <div className="flex-1 space-y-1">
                       <Skeleton className="h-4 w-3/4" />
                       <Skeleton className="h-3 w-1/4" />
@@ -313,21 +326,22 @@ export default function ParentDashboard() {
                 ))}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {activities?.map((activity, index) => (
-                <motion.div
-                  key={activity.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="flex items-start gap-3"
-                >                    <Avatar className="size-8">
+                  <motion.div
+                    key={activity.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="flex items-start gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-colors"
+                  >
+                    <Avatar className="size-10 ring-2 ring-white shadow-sm">
                       <AvatarImage src={activity.childAvatar} />
                       <AvatarFallback className={cn(
-                        'text-xs font-medium',
-                        activity.type === 'achievement' ? 'bg-warning/20 text-warning' :
-                        activity.type === 'plan_published' ? 'bg-info/20 text-info' :
-                        'bg-primary/20 text-primary'
+                        'text-sm font-medium',
+                        activity.type === 'achievement' ? 'bg-gradient-to-br from-amber-400 to-orange-400 text-white' :
+                        activity.type === 'plan_published' ? 'bg-gradient-to-br from-blue-400 to-cyan-400 text-white' :
+                        'bg-gradient-to-br from-purple-500 to-blue-500 text-white'
                       )}>
                         {activity.type === 'achievement' ? '🏆' :
                          activity.type === 'plan_published' ? '📅' :
@@ -335,13 +349,13 @@ export default function ParentDashboard() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground">
-                        <span className="font-medium">{activity.childName}</span>
+                      <p className="text-sm text-gray-900">
+                        <span className="font-semibold">{activity.childName}</span>
                         {' '}{activity.action}
-                        {activity.task && <span className="text-primary"> {activity.task}</span>}
-                        {activity.book && <span className="text-primary"> 《{activity.book}》</span>}
+                        {activity.task && <span className="text-purple-600 font-medium"> {activity.task}</span>}
+                        {activity.book && <span className="text-purple-600 font-medium"> 《{activity.book}》</span>}
                       </p>
-                      <p className="text-xs text-muted-foreground">{activity.time}</p>
+                      <p className="text-xs text-gray-400 mt-1">{activity.time}</p>
                     </div>
                   </motion.div>
                 ))}
@@ -352,8 +366,4 @@ export default function ParentDashboard() {
       </div>
     </div>
   );
-}
-
-function cn(...classes: (string | boolean | undefined | null)[]) {
-  return classes.filter(Boolean).join(' ');
 }
