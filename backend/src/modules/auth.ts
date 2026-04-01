@@ -337,8 +337,131 @@ authRouter.get('/children', authMiddleware, requireRole('parent'), async (req: A
     },
   })
 
+  // TODO: Replace with actual statistics from database
+  const childrenWithStats = children.map(child => ({
+    ...child,
+    pin: '1234', // Placeholder - PIN should not be returned in production
+    weeklyProgress: 0,
+    todayMinutes: 0,
+    completedTasks: 0,
+    totalTasks: 0,
+    streak: 0,
+    achievements: 0,
+  }))
+
   res.json({
     status: 'success',
-    data: children,
+    data: childrenWithStats,
+  })
+})
+
+/**
+ * PUT /children/:id - Update child information
+ * Auth required, parent only
+ */
+authRouter.put('/children/:id', authMiddleware, requireRole('parent'), async (req: AuthRequest, res: Response) => {
+  const { id } = req.params
+  const { name, avatar, pin } = req.body
+  const { familyId } = req.user!
+
+  // Check if child exists and belongs to the family
+  const existingChild = await prisma.user.findFirst({
+    where: {
+      id,
+      familyId,
+      role: 'child',
+      status: 'active',
+    },
+  })
+
+  if (!existingChild) {
+    throw new AppError(404, '孩子不存在')
+  }
+
+  // Build update data
+  const updateData: { name?: string; avatar?: string; passwordHash?: string } = {}
+
+  if (name) {
+    // Check if another child with the same name exists (excluding current child)
+    const duplicateName = await prisma.user.findFirst({
+      where: {
+        familyId,
+        name,
+        role: 'child',
+        status: 'active',
+        NOT: { id },
+      },
+    })
+
+    if (duplicateName) {
+      throw new AppError(409, '该名字的孩子已存在')
+    }
+
+    updateData.name = name
+  }
+
+  if (avatar) {
+    updateData.avatar = avatar
+  }
+
+  if (pin) {
+    // Validate PIN format (4-digit number)
+    if (!/^\d{4}$/.test(pin)) {
+      throw new AppError(400, 'PIN必须是4位数字')
+    }
+    updateData.passwordHash = await bcrypt.hash(pin, 12)
+  }
+
+  // Update child
+  const updatedChild = await prisma.user.update({
+    where: { id },
+    data: updateData,
+    select: {
+      id: true,
+      name: true,
+      avatar: true,
+      role: true,
+      updatedAt: true,
+    },
+  })
+
+  res.json({
+    status: 'success',
+    message: '孩子信息更新成功',
+    data: updatedChild,
+  })
+})
+
+/**
+ * DELETE /children/:id - Delete a child
+ * Auth required, parent only
+ */
+authRouter.delete('/children/:id', authMiddleware, requireRole('parent'), async (req: AuthRequest, res: Response) => {
+  const { id } = req.params
+  const { familyId } = req.user!
+
+  // Check if child exists and belongs to the family
+  const existingChild = await prisma.user.findFirst({
+    where: {
+      id,
+      familyId,
+      role: 'child',
+      status: 'active',
+    },
+  })
+
+  if (!existingChild) {
+    throw new AppError(404, '孩子不存在')
+  }
+
+  // Soft delete by updating status to 'inactive'
+  await prisma.user.update({
+    where: { id },
+    data: { status: 'inactive' },
+  })
+
+  res.json({
+    status: 'success',
+    message: '孩子已删除',
   })
 })
