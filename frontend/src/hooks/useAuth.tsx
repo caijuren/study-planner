@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
-import type { User, AuthState, LoginCredentials, ChildLoginCredentials, RegisterData, AuthResponse } from '@/types/auth';
+import type { User, AuthState, LoginCredentials, ChildLoginCredentials, RegisterData } from '@/types/auth';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
