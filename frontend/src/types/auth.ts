@@ -2,8 +2,8 @@ export interface User {
   id: number;
   name: string;
   role: 'parent' | 'child';
-  familyId: number;
-  avatar: string;
+  familyId?: number;
+  avatar?: string;
 }
 
 export interface AuthState {
@@ -13,8 +13,9 @@ export interface AuthState {
 }
 
 export interface LoginCredentials {
-  familyCode: string;
-  userName: string;
+  familyCode?: string;
+  userName?: string;
+  username?: string;
   password: string;
 }
 
@@ -25,10 +26,14 @@ export interface ChildLoginCredentials {
 }
 
 export interface RegisterData {
-  familyName: string;
-  familyCode: string;
-  parentName: string;
-  parentPassword: string;
+  familyName?: string;
+  familyCode?: string;
+  parentName?: string;
+  parentPassword?: string;
+  // Simplified registration
+  username?: string;
+  password?: string;
+  role?: 'parent' | 'child';
 }
 
 export interface AuthResponse {

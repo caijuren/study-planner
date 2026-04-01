@@ -5,13 +5,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
 import {
-  Settings,
   Bell,
   Trash2,
   AlertTriangle,
   Send,
   Save,
-  Clock,
   User
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -33,7 +31,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 // Schema
 const settingsSchema = z.object({
@@ -243,7 +240,7 @@ export default function SettingsPage() {
                   </div>
                   <AlertDialogFooter className="gap-3">
                     <AlertDialogCancel onClick={() => setDeleteConfirmText('')} className="rounded-xl h-11">取消</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} disabled={deleteMutation.isPending || deleteConfirmText !== '删除'} className="bg-red-500 hover:bg-red-600 text-white rounded-xl h-11">
+                    <AlertDialogAction onClick={handleDeleteData} disabled={deleteMutation.isPending || deleteConfirmText !== '删除'} className="bg-red-500 hover:bg-red-600 text-white rounded-xl h-11">
                       确认删除
                     </AlertDialogAction>
                   </AlertDialogFooter>
