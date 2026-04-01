@@ -3,6 +3,21 @@ import { env } from './config/env'
 import { prisma } from './config/database'
 import { Prisma } from '@prisma/client'
 import { logger } from './config/logger'
+import { execSync } from 'child_process'
+
+const runMigrations = () => {
+  try {
+    console.log('Running database migrations...')
+    execSync('npx prisma migrate deploy', {
+      stdio: 'inherit',
+      cwd: process.cwd()
+    })
+    console.log('Database migrations completed successfully')
+  } catch (error) {
+    console.error('Failed to run migrations:', error)
+    // Don't exit, let it try to start anyway (migrations might already be applied)
+  }
+}
 
 const startServer = async () => {
   try {
@@ -21,6 +36,9 @@ const startServer = async () => {
         }
       }
     }
+
+    // Run database migrations on startup (for Render deployment)
+    runMigrations()
 
     const app = createApp()
 
