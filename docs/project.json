@@ -3,6 +3,6 @@
   "sub_project_type": "",
   "name": "儿童学习规划",
   "app_slug": "study-planner",
-  "version_description": "完成任务绑定到特定孩子功能",
+  "version_description": "重构图书馆和阅读管理模块",
   "preview_type": "pc"
 }

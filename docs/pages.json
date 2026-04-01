@@ -5,7 +5,7 @@
     "url": "/"
   },
   {
-    "pageKey": "kmqi4y",
+    "pageKey": "c48i3j",
     "title": "/child",
     "url": "/child"
   },
@@ -30,7 +30,7 @@
     "url": "/login"
   },
   {
-    "pageKey": "qbvsd0",
+    "pageKey": "z4jpxf",
     "title": "/parent",
     "url": "/parent"
   },
@@ -53,6 +53,11 @@
     "pageKey": "ParentPlans",
     "title": "Plans",
     "url": "/parent/plans"
+  },
+  {
+    "pageKey": "ParentReading",
+    "title": "Reading",
+    "url": "/parent/reading"
   },
   {
     "pageKey": "ParentSettings",

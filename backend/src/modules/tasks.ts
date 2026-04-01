@@ -186,7 +186,7 @@ tasksRouter.put('/:id', async (req: AuthRequest, res: Response) => {
   }
 
   // Validate and process appliesTo if provided
-  let validatedAppliesTo
+  let validatedAppliesTo: number[] | undefined
   if (appliesTo !== undefined) {
     if (appliesTo === null) {
       validatedAppliesTo = []

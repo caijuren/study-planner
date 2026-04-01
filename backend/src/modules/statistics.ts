@@ -1,6 +1,5 @@
 import { Router, Response } from 'express'
 import { prisma } from '../config/database'
-import { AppError } from '../middleware/errorHandler'
 import { authMiddleware, AuthRequest, requireRole } from '../middleware/auth'
 
 export const statisticsRouter: Router = Router()
@@ -199,13 +198,13 @@ statisticsRouter.get('/trends', async (req: AuthRequest, res: Response) => {
   const childId = req.query.childId ? parseInt(req.query.childId as string) : undefined
   const weeks = parseInt(req.query.weeks as string) || 4
 
-  const childIds = childId ? [childId] : []
+  let childIds: number[] = childId ? [childId] : []
   if (!childId) {
     const children = await prisma.user.findMany({
       where: { familyId, role: 'child', status: 'active' },
       select: { id: true },
     })
-    childIds.push(...children.map(c => c.id))
+    childIds = children.map(c => c.id)
   }
 
   // Get last N weeks of data
@@ -227,12 +226,15 @@ statisticsRouter.get('/trends', async (req: AuthRequest, res: Response) => {
           childId: { in: childIds },
           weekNo,
         },
-        include: { checkins: true },
+        include: {
+          checkins: true,
+          task: true,
+        },
       })
 
       const totalTarget = plans.reduce((sum, p) => sum + p.target, 0)
       const totalProgress = plans.reduce((sum, p) => sum + p.progress, 0)
-      const totalTime = plans.reduce((sum, p) => sum + (p.task.timePerUnit || 30) * p.target, 0)
+      const totalTime = plans.reduce((sum, p) => sum + (p.task?.timePerUnit || 30) * p.target, 0)
 
       return {
         weekNo,

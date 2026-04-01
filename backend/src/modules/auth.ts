@@ -360,7 +360,7 @@ authRouter.get('/children', authMiddleware, requireRole('parent'), async (req: A
  * Auth required, parent only
  */
 authRouter.put('/children/:id', authMiddleware, requireRole('parent'), async (req: AuthRequest, res: Response) => {
-  const { id } = req.params
+  const id = parseInt(req.params.id as string)
   const { name, avatar, pin } = req.body
   const { familyId } = req.user!
 
@@ -437,7 +437,7 @@ authRouter.put('/children/:id', authMiddleware, requireRole('parent'), async (re
  * Auth required, parent only
  */
 authRouter.delete('/children/:id', authMiddleware, requireRole('parent'), async (req: AuthRequest, res: Response) => {
-  const { id } = req.params
+  const id = parseInt(req.params.id as string)
   const { familyId } = req.user!
 
   // Check if child exists and belongs to the family
