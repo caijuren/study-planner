@@ -7,7 +7,6 @@ import {
   Plus,
   Edit2,
   Trash2,
-  Clock,
   BookOpen,
   Calculator,
   Dumbbell,
@@ -17,18 +16,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,7 +30,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { apiClient, getErrorMessage } from '@/lib/api-client';
 import { toast } from 'sonner';
-import { FadeIn, Stagger } from '@/components/MotionPrimitives';
+import { FadeIn } from '@/components/MotionPrimitives';
 import { cn } from '@/lib/utils';
 
 // Types
@@ -412,7 +401,6 @@ export default function TasksPage() {
                 <div className="grid grid-cols-3 gap-2 mt-1.5">
                   {categories.map(cat => {
                     const config = categoryConfig[cat];
-                    const Icon = config.icon;
                     return (
                       <button
                         key={cat}
