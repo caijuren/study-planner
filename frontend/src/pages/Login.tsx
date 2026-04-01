@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 export default function Login() {
   const { login, isLoading } = useAuth();
   const [formData, setFormData] = useState({
-    username: '',
+    familyCode: '',
+    userName: '',
     password: ''
   });
 
@@ -18,12 +19,13 @@ export default function Login() {
 
     try {
       await login({
-        username: formData.username,
+        familyCode: formData.familyCode,
+        userName: formData.userName,
         password: formData.password
       });
       toast.success('登录成功！');
     } catch {
-      toast.error('登录失败，请检查用户名和密码');
+      toast.error('登录失败，请检查家庭代码、用户名和密码');
     }
   };
 
@@ -55,12 +57,24 @@ export default function Login() {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
+              <Label className="text-sm font-medium text-gray-700">家庭代码</Label>
+              <Input
+                type="text"
+                placeholder="输入家庭代码"
+                value={formData.familyCode}
+                onChange={(e) => setFormData({ ...formData, familyCode: e.target.value })}
+                className="mt-1.5 h-12 rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500"
+                required
+              />
+            </div>
+
+            <div>
               <Label className="text-sm font-medium text-gray-700">用户名</Label>
               <Input
                 type="text"
                 placeholder="输入用户名"
-                value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                value={formData.userName}
+                onChange={(e) => setFormData({ ...formData, userName: e.target.value })}
                 className="mt-1.5 h-12 rounded-xl border-gray-200 focus:border-purple-500 focus:ring-purple-500"
                 required
               />
