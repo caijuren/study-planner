@@ -11,6 +11,7 @@ interface AuthContextType extends AuthState {
   addChild: (child: { name: string; pin: string; avatar: string }) => Promise<void>;
   switchUser: (user: User) => void;
   isLoading: boolean;
+  isInitializing: boolean;
   error: string | null;
 }
 
@@ -42,13 +43,56 @@ function saveAuthState(state: AuthState): void {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AuthState>(getStoredAuthState);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
+  // 验证 token 是否有效
+  const verifyToken = useCallback(async () => {
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      setIsInitializing(false);
+      return;
+    }
+
+    try {
+      const response = await apiClient.get('/auth/me');
+      const user = response.data.data;
+      setState({
+        user: {
+          id: user.id,
+          name: user.name,
+          role: user.role,
+          familyId: user.familyId,
+          familyName: user.familyName,
+          familyCode: user.familyCode,
+          avatar: user.avatar,
+        },
+        token,
+        isAuthenticated: true,
+      });
+    } catch (err) {
+      // Token 无效，清除状态
+      console.error('Token verification failed:', err);
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem('auth_token');
+      setState({ user: null, token: null, isAuthenticated: false });
+    } finally {
+      setIsInitializing(false);
+    }
+  }, []);
+
+  // 应用启动时验证 token
   useEffect(() => {
-    saveAuthState(state);
-  }, [state]);
+    verifyToken();
+  }, [verifyToken]);
+
+  useEffect(() => {
+    if (!isInitializing) {
+      saveAuthState(state);
+    }
+  }, [state, isInitializing]);
 
   const redirectByRole = useCallback((user: User) => {
     const from = location.state?.from?.pathname;
@@ -151,6 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         addChild,
         switchUser,
         isLoading,
+        isInitializing,
         error,
       }}
     >

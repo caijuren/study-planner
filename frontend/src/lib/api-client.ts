@@ -49,9 +49,15 @@ apiClient.interceptors.response.use(
   (error: AxiosError) => {
     // Handle 401 Unauthorized - redirect to login
     if (error.response?.status === 401) {
+      // 清除认证状态
+      localStorage.removeItem('auth_state');
       localStorage.removeItem('auth_token');
-      // Uncomment when you have a login page
-      // window.location.href = '/login';
+      
+      // 如果不在登录/注册页面，跳转到登录页
+      const currentPath = window.location.pathname;
+      if (currentPath !== '/login' && currentPath !== '/register') {
+        window.location.href = '/login';
+      }
     }
 
     // Handle 403 Forbidden
@@ -82,4 +88,3 @@ export function getErrorMessage(error: unknown): string {
 }
 
 export default apiClient;
-
