@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,7 +15,9 @@ import {
   Flame,
   Award,
   Clock,
-  Target
+  Target,
+  Camera,
+  Upload
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -61,8 +63,8 @@ const childSchema = z.object({
 
 type ChildFormData = z.infer<typeof childSchema>;
 
-// Avatar options
-const avatarOptions = ['🦊', '🐼', '🐨', '🦁', '🐯', '🐰', '🐻', '🐸', '🦄', '🐱'];
+// Preset avatar options (emoji)
+const presetAvatars = ['🦊', '🐼', '🐨', '🦁', '🐯', '🐰', '🐻', '🐸', '🦄', '🐱'];
 
 // API functions
 async function fetchChildren(): Promise<Child[]> {
@@ -96,6 +98,9 @@ export default function ChildrenPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [childToDelete, setChildToDelete] = useState<Child | null>(null);
   const [selectedAvatar, setSelectedAvatar] = useState<string>('🦊');
+  const [customAvatar, setCustomAvatar] = useState<string | null>(null);
+  const [avatarMode, setAvatarMode] = useState<'preset' | 'custom'>('preset');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -146,38 +151,95 @@ export default function ChildrenPage() {
   const openCreateDialog = () => {
     setEditingChild(null);
     setSelectedAvatar('🦊');
+    setCustomAvatar(null);
+    setAvatarMode('preset');
     reset({ name: '', avatar: '🦊', pin: '' });
     setDialogOpen(true);
   };
 
   const openEditDialog = (child: Child) => {
     setEditingChild(child);
-    setSelectedAvatar(child.avatar || '🦊');
-    reset({ name: child.name, avatar: child.avatar || '🦊', pin: child.pin });
+    const avatar = child.avatar || '🦊';
+    const isCustom = avatar.startsWith('data:') || avatar.startsWith('http');
+    setAvatarMode(isCustom ? 'custom' : 'preset');
+    if (isCustom) {
+      setCustomAvatar(avatar);
+    } else {
+      setSelectedAvatar(avatar);
+    }
+    reset({ name: child.name, avatar: avatar, pin: child.pin });
     setDialogOpen(true);
   };
 
   const closeDialog = () => {
     setDialogOpen(false);
     setEditingChild(null);
+    setCustomAvatar(null);
     reset();
   };
 
-  const selectAvatar = (avatar: string) => {
+  const selectPresetAvatar = (avatar: string) => {
     setSelectedAvatar(avatar);
+    setCustomAvatar(null);
+    setAvatarMode('preset');
     setValue('avatar', avatar);
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('请选择图片文件');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('图片大小不能超过2MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setCustomAvatar(base64);
+      setAvatarMode('custom');
+      setValue('avatar', base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const onSubmit = (data: ChildFormData) => {
+    const avatar = avatarMode === 'custom' ? customAvatar : selectedAvatar;
+    const submitData = { ...data, avatar: avatar || '🦊' };
+    
     if (editingChild) {
-      updateMutation.mutate({ id: editingChild.id, data });
+      updateMutation.mutate({ id: editingChild.id, data: submitData });
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(submitData);
     }
   };
 
   const handleDelete = () => childToDelete && deleteMutation.mutate(childToDelete.id);
   const switchToChildView = (_childId: string) => navigate('/child');
+
+  const renderAvatar = (child: Child) => {
+    const avatar = child.avatar || '👶';
+    if (avatar.startsWith('data:') || avatar.startsWith('http')) {
+      return (
+        <img 
+          src={avatar} 
+          alt={child.name} 
+          className="size-20 rounded-2xl object-cover shadow-lg shadow-purple-500/20"
+        />
+      );
+    }
+    return (
+      <div className="size-20 rounded-2xl bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-4xl shadow-lg shadow-purple-500/20">
+        {avatar}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -193,6 +255,23 @@ export default function ChildrenPage() {
         </Button>
       </div>
 
+      {/* PIN 说明卡片 */}
+      <Card className="border-0 shadow-lg shadow-gray-200/50 rounded-3xl overflow-hidden">
+        <CardContent className="p-5">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center shrink-0">
+              <span className="text-xl">💡</span>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">关于 PIN 码</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                PIN 码是孩子的登录密码。孩子可以使用「家庭代码 + 孩子 PIN」的方式登录，无需记住复杂密码，适合小朋友使用。
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Children Cards */}
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2">
@@ -204,7 +283,6 @@ export default function ChildrenPage() {
                   <div className="flex-1 space-y-3">
                     <Skeleton className="h-5 w-24" />
                     <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
                   </div>
                 </div>
               </CardContent>
@@ -220,9 +298,7 @@ export default function ChildrenPage() {
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
                     {/* Avatar */}
-                    <div className="size-20 rounded-2xl bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-4xl shadow-lg shadow-purple-500/20">
-                      {child.avatar || '👶'}
-                    </div>
+                    {renderAvatar(child)}
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
@@ -304,7 +380,7 @@ export default function ChildrenPage() {
         {dialogOpen && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50" onClick={closeDialog} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="fixed inset-4 lg:inset-auto lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-[480px] lg:max-h-[85vh] bg-white rounded-3xl shadow-2xl z-50 overflow-hidden flex flex-col">
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="fixed inset-4 lg:inset-auto lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-[520px] lg:max-h-[85vh] bg-white rounded-3xl shadow-2xl z-50 overflow-hidden flex flex-col">
               {/* Header */}
               <div className="flex items-center justify-between p-6 border-b border-gray-100">
                 <h2 className="text-xl font-bold text-gray-900">{editingChild ? '编辑孩子信息' : '添加孩子'}</h2>
@@ -313,16 +389,90 @@ export default function ChildrenPage() {
 
               {/* Body */}
               <div className="flex-1 overflow-auto p-6">
-                <form id="child-form" onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                <form id="child-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                  {/* Avatar Selection */}
                   <div>
-                    <Label className="text-sm font-medium text-gray-700">选择头像</Label>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {avatarOptions.map((avatar) => (
-                        <button key={avatar} type="button" onClick={() => selectAvatar(avatar)} className={cn('size-12 rounded-xl text-2xl flex items-center justify-center transition-all border-2', selectedAvatar === avatar ? 'border-purple-500 bg-purple-50 scale-110' : 'border-transparent hover:bg-gray-100')}>
-                          {avatar}
-                        </button>
-                      ))}
+                    <Label className="text-sm font-medium text-gray-700 mb-3 block">选择头像</Label>
+                    
+                    {/* Avatar Mode Toggle */}
+                    <div className="flex gap-2 mb-4">
+                      <button
+                        type="button"
+                        onClick={() => setAvatarMode('preset')}
+                        className={cn(
+                          "flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all",
+                          avatarMode === 'preset'
+                            ? "bg-purple-100 text-purple-700"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        )}
+                      >
+                        预设头像
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAvatarMode('custom')}
+                        className={cn(
+                          "flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all",
+                          avatarMode === 'custom'
+                            ? "bg-purple-100 text-purple-700"
+                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        )}
+                      >
+                        自定义上传
+                      </button>
                     </div>
+
+                    {avatarMode === 'preset' ? (
+                      <div className="flex flex-wrap gap-2">
+                        {presetAvatars.map((avatar) => (
+                          <button
+                            key={avatar}
+                            type="button"
+                            onClick={() => selectPresetAvatar(avatar)}
+                            className={cn(
+                              'size-14 rounded-xl text-3xl flex items-center justify-center transition-all border-2',
+                              selectedAvatar === avatar && avatarMode === 'preset'
+                                ? 'border-purple-500 bg-purple-50 scale-110'
+                                : 'border-transparent hover:bg-gray-100'
+                            )}
+                          >
+                            {avatar}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Preview */}
+                        {customAvatar && (
+                          <div className="flex justify-center">
+                            <img
+                              src={customAvatar}
+                              alt="预览"
+                              className="size-24 rounded-2xl object-cover shadow-lg"
+                            />
+                          </div>
+                        )}
+                        
+                        {/* Upload Button */}
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="w-full h-12 rounded-xl border-dashed border-2 gap-2"
+                        >
+                          {customAvatar ? <Camera className="size-4" /> : <Upload className="size-4" />}
+                          {customAvatar ? '更换头像' : '上传头像'}
+                        </Button>
+                        <p className="text-xs text-gray-400 text-center">支持 JPG、PNG 格式，最大 2MB</p>
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -332,17 +482,22 @@ export default function ChildrenPage() {
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium text-gray-700">PIN码 *</Label>
+                    <Label className="text-sm font-medium text-gray-700">PIN 码 *</Label>
                     <Input type="password" maxLength={4} {...register('pin')} placeholder="4位数字PIN码" className="mt-2 rounded-xl h-12 bg-gray-50 border-0 text-center tracking-[0.5em] text-lg" />
                     {errors.pin && <p className="text-red-500 text-xs mt-1">{errors.pin.message}</p>}
-                    <p className="text-xs text-gray-400 mt-2">PIN码用于孩子登录时的身份验证</p>
+                    <p className="text-xs text-gray-400 mt-2">PIN码用于孩子登录时的身份验证，建议使用简单易记的4位数字</p>
                   </div>
                 </form>
               </div>
 
               {/* Footer */}
               <div className="p-6 border-t border-gray-100 space-y-3">
-                <Button type="submit" form="child-form" disabled={createMutation.isPending || updateMutation.isPending} className="w-full h-12 rounded-xl text-base font-semibold bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-lg shadow-purple-500/25">
+                <Button
+                  type="submit"
+                  form="child-form"
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                  className="w-full h-12 rounded-xl text-base font-semibold bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white shadow-lg shadow-purple-500/25"
+                >
                   {editingChild ? '保存修改' : '添加孩子'}
                 </Button>
                 <Button type="button" variant="outline" className="w-full h-12 rounded-xl" onClick={closeDialog}>取消</Button>

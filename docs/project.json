@@ -3,6 +3,6 @@
   "sub_project_type": "",
   "name": "小书虫学习",
   "app_slug": "xiaoshuchong",
-  "version_description": "修复注册登录接口字段匹配问题",
+  "version_description": "简化注册登录流程",
   "preview_type": "pc"
 }
