@@ -13,12 +13,18 @@ tasksRouter.use(requireRole('parent'))
 // Task Routes (Parent only)
 // ============================================
 
+// Tag definitions
+const VALID_SUBJECTS = ['chinese', 'math', 'english', 'sports']
+const VALID_FORMATS = ['paper', 'tablet', 'app', 'reading', 'recite', 'exercise']
+const VALID_PARTICIPATIONS = ['independent', 'accompany', 'interactive', 'parent']
+const VALID_DIFFICULTIES = ['basic', 'advanced', 'challenge']
+
 /**
  * POST / - Create a new task
- * Body: { name, category, type, timePerUnit, weeklyRule }
+ * Body: { name, category, type, timePerUnit, weeklyRule, tags }
  */
 tasksRouter.post('/', async (req: AuthRequest, res: Response) => {
-  const { name, category, type, timePerUnit, weeklyRule } = req.body
+  const { name, category, type, timePerUnit, weeklyRule, tags } = req.body
   const { familyId } = req.user!
 
   if (!name || !category || !type) {
@@ -37,6 +43,17 @@ tasksRouter.post('/', async (req: AuthRequest, res: Response) => {
     throw new AppError(400, `Invalid type. Must be one of: ${validTypes.join(', ')}`)
   }
 
+  // Validate tags if provided
+  let validatedTags = {}
+  if (tags && typeof tags === 'object') {
+    validatedTags = {
+      ...(tags.subject && VALID_SUBJECTS.includes(tags.subject) && { subject: tags.subject }),
+      ...(tags.format && Array.isArray(tags.format) && { format: tags.format.filter((f: string) => VALID_FORMATS.includes(f)) }),
+      ...(tags.participation && VALID_PARTICIPATIONS.includes(tags.participation) && { participation: tags.participation }),
+      ...(tags.difficulty && VALID_DIFFICULTIES.includes(tags.difficulty) && { difficulty: tags.difficulty }),
+    }
+  }
+
   const task = await prisma.task.create({
     data: {
       familyId,
@@ -45,6 +62,7 @@ tasksRouter.post('/', async (req: AuthRequest, res: Response) => {
       type,
       timePerUnit: timePerUnit || 30,
       weeklyRule: weeklyRule || {},
+      tags: validatedTags,
     },
   })
 
@@ -95,12 +113,12 @@ tasksRouter.get('/:id', async (req: AuthRequest, res: Response) => {
 
 /**
  * PUT /:id - Update task
- * Body: { name?, category?, type?, timePerUnit?, weeklyRule?, isActive? }
+ * Body: { name?, category?, type?, timePerUnit?, weeklyRule?, isActive?, tags? }
  */
 tasksRouter.put('/:id', async (req: AuthRequest, res: Response) => {
   const id = parseInt(req.params.id as string)
   const { familyId } = req.user!
-  const { name, category, type, timePerUnit, weeklyRule, isActive } = req.body
+  const { name, category, type, timePerUnit, weeklyRule, isActive, tags } = req.body
 
   // Check task exists and belongs to family
   const existingTask = await prisma.task.findFirst({
@@ -127,6 +145,21 @@ tasksRouter.put('/:id', async (req: AuthRequest, res: Response) => {
     }
   }
 
+  // Validate and process tags if provided
+  let validatedTags
+  if (tags !== undefined) {
+    if (tags === null) {
+      validatedTags = null
+    } else if (typeof tags === 'object') {
+      validatedTags = {
+        ...(tags.subject && VALID_SUBJECTS.includes(tags.subject) && { subject: tags.subject }),
+        ...(tags.format && Array.isArray(tags.format) && { format: tags.format.filter((f: string) => VALID_FORMATS.includes(f)) }),
+        ...(tags.participation && VALID_PARTICIPATIONS.includes(tags.participation) && { participation: tags.participation }),
+        ...(tags.difficulty && VALID_DIFFICULTIES.includes(tags.difficulty) && { difficulty: tags.difficulty }),
+      }
+    }
+  }
+
   const task = await prisma.task.update({
     where: { id },
     data: {
@@ -136,6 +169,7 @@ tasksRouter.put('/:id', async (req: AuthRequest, res: Response) => {
       ...(timePerUnit !== undefined && { timePerUnit }),
       ...(weeklyRule !== undefined && { weeklyRule }),
       ...(isActive !== undefined && { isActive }),
+      ...(validatedTags !== undefined && { tags: validatedTags }),
     },
   })
 

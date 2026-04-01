@@ -8,6 +8,7 @@ import {
   BookOpen,
   Trophy,
   Users,
+  BarChart3,
   Settings,
   LogOut,
   Menu,
@@ -26,6 +27,7 @@ const navItems = [
   { path: '/parent/library', label: '图书管理', icon: BookOpen },
   { path: '/parent/achievements', label: '成就配置', icon: Trophy },
   { path: '/parent/children', label: '孩子管理', icon: Users },
+  { path: '/parent/statistics', label: '数据统计', icon: BarChart3 },
   { path: '/parent/settings', label: '设置', icon: Settings },
 ];
 

@@ -14,6 +14,7 @@ import { tasksRouter } from './modules/tasks'
 import { plansRouter } from './modules/plans'
 import { booksRouter } from './modules/books'
 import { reportsRouter } from './modules/reports'
+import { statisticsRouter } from './modules/statistics'
 
 export const createApp = (): Application => {
   const app = express()
@@ -44,6 +45,7 @@ export const createApp = (): Application => {
   app.use(`${env.API_PREFIX}/plans`, plansRouter)
   app.use(`${env.API_PREFIX}/books`, booksRouter)
   app.use(`${env.API_PREFIX}/reports`, reportsRouter)
+  app.use(`${env.API_PREFIX}/statistics`, statisticsRouter)
 
   // Error handling
   app.use(errorHandler)

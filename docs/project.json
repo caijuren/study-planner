@@ -1,8 +1,8 @@
 {
   "project_type": "web",
   "sub_project_type": "",
-  "name": "小书虫学习",
-  "app_slug": "xiaoshuchong",
-  "version_description": "修复登录状态持久化问题",
+  "name": "儿童学习规划",
+  "app_slug": "study-planner",
+  "version_description": "修复修改孩子信息404错误",
   "preview_type": "pc"
 }

@@ -55,6 +55,7 @@ model Task {
   type         String   @db.VarChar(20) // fixed, flexible, follow
   timePerUnit  Int      @default(30) @map("time_per_unit") // 单次时长（分钟）
   weeklyRule   Json?    @map("weekly_rule") // 分配规则 {"exclude_days": [3], "only_weekend": true}
+  tags         Json?    @default("{}") // 多维度标签 {"subject": "math", "format": ["paper", "tablet"], "participation": "independent", "difficulty": "basic"}
   sortOrder    Int      @default(0) @map("sort_order")
   isActive     Boolean  @default(true) @map("is_active")
   createdAt    DateTime @default(now()) @map("created_at")

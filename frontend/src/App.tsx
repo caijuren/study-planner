@@ -21,6 +21,7 @@ import ParentPlans from "./pages/parent/Plans";
 import ParentChildren from "./pages/parent/Children";
 import ParentLibrary from "./pages/parent/Library";
 import ParentAchievements from "./pages/parent/Achievements";
+import ParentStatistics from "./pages/parent/Statistics";
 import ParentSettings from "./pages/parent/Settings";
 
 /**
@@ -76,6 +77,7 @@ function App() {
                 <Route path="library" data-genie-title="Library" data-genie-key="ParentLibrary" element={<PageTransition transition="slide-up"><ParentLibrary /></PageTransition>} />
                 <Route path="achievements" data-genie-title="Achievements" data-genie-key="ParentAchievements" element={<PageTransition transition="slide-up"><ParentAchievements /></PageTransition>} />
                 <Route path="children" data-genie-title="Children" data-genie-key="ParentChildren" element={<PageTransition transition="slide-up"><ParentChildren /></PageTransition>} />
+                <Route path="statistics" data-genie-title="Statistics" data-genie-key="ParentStatistics" element={<PageTransition transition="slide-up"><ParentStatistics /></PageTransition>} />
                 <Route path="settings" data-genie-title="Settings" data-genie-key="ParentSettings" element={<PageTransition transition="slide-up"><ParentSettings /></PageTransition>} />
               </Route>
 

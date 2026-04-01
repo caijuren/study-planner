@@ -41,6 +41,17 @@ import { cn } from '@/lib/utils';
 type TaskCategory = '校内巩固' | '校内拔高' | '课外课程' | '英语阅读' | '体育运动' | '中文阅读';
 type TaskType = '固定' | '灵活' | '跟随学校';
 type UnitType = '本' | '次' | '章' | '课时';
+type SubjectTag = 'chinese' | 'math' | 'english' | 'sports';
+type FormatTag = 'paper' | 'tablet' | 'app' | 'reading' | 'recite' | 'exercise';
+type ParticipationTag = 'independent' | 'accompany' | 'interactive' | 'parent';
+type DifficultyTag = 'basic' | 'advanced' | 'challenge';
+
+interface TaskTags {
+  subject?: SubjectTag;
+  format?: FormatTag[];
+  participation?: ParticipationTag;
+  difficulty?: DifficultyTag;
+}
 
 interface Task {
   id: string;
@@ -53,6 +64,7 @@ interface Task {
   frequency: 'daily' | 'weekly';
   frequencyValue: number;
   description?: string;
+  tags?: TaskTags;
 }
 
 // Schema
@@ -65,7 +77,13 @@ const taskSchema = z.object({
   timePerUnit: z.number().min(1, '时间不能小于1分钟').max(180, '时间不能超过180分钟'),
   frequency: z.enum(['daily', 'weekly']),
   frequencyValue: z.number().min(1).max(7),
-  description: z.string().max(200, '描述不能超过200字符').optional()
+  description: z.string().max(200, '描述不能超过200字符').optional(),
+  tags: z.object({
+    subject: z.enum(['chinese', 'math', 'english', 'sports']).optional(),
+    format: z.array(z.enum(['paper', 'tablet', 'app', 'reading', 'recite', 'exercise'])).optional(),
+    participation: z.enum(['independent', 'accompany', 'interactive', 'parent']).optional(),
+    difficulty: z.enum(['basic', 'advanced', 'challenge']).optional(),
+  }).optional()
 });
 
 type TaskFormData = z.infer<typeof taskSchema>;
@@ -88,6 +106,36 @@ const typeConfig: Record<TaskType, { label: string; desc: string; gradient: stri
 
 const categories: TaskCategory[] = ['校内巩固', '校内拔高', '课外课程', '英语阅读', '体育运动', '中文阅读'];
 const units: UnitType[] = ['本', '次', '章', '课时'];
+
+// Tag configurations
+const subjectConfig: Record<SubjectTag, { label: string; color: string; bgColor: string }> = {
+  chinese: { label: '语文', color: 'text-orange-600', bgColor: 'bg-orange-100' },
+  math: { label: '数学', color: 'text-blue-600', bgColor: 'bg-blue-100' },
+  english: { label: '英语', color: 'text-green-600', bgColor: 'bg-green-100' },
+  sports: { label: '体育', color: 'text-red-600', bgColor: 'bg-red-100' },
+};
+
+const formatConfig: Record<FormatTag, { label: string; icon: string }> = {
+  paper: { label: '纸质作业', icon: '📝' },
+  tablet: { label: '平板/在线', icon: '📱' },
+  app: { label: 'App打卡', icon: '💾' },
+  reading: { label: '阅读活动', icon: '📚' },
+  recite: { label: '口头诵读', icon: '🗣️' },
+  exercise: { label: '运动锻炼', icon: '🏃' },
+};
+
+const participationConfig: Record<ParticipationTag, { label: string; desc: string }> = {
+  independent: { label: '独立完成', desc: '孩子自己完成' },
+  accompany: { label: '家长陪同', desc: '家长在身边协助' },
+  interactive: { label: '亲子互动', desc: '家长和孩子共同参与' },
+  parent: { label: '家长主导', desc: '主要由家长完成' },
+};
+
+const difficultyConfig: Record<DifficultyTag, { label: string; color: string; bgColor: string }> = {
+  basic: { label: '基础', color: 'text-emerald-600', bgColor: 'bg-emerald-100' },
+  advanced: { label: '提高', color: 'text-amber-600', bgColor: 'bg-amber-100' },
+  challenge: { label: '挑战', color: 'text-purple-600', bgColor: 'bg-purple-100' },
+};
 
 // Mock data
 const mockTasks: Task[] = [
@@ -146,7 +194,8 @@ export default function TasksPage() {
       timePerUnit: 30,
       frequency: 'daily',
       frequencyValue: 1,
-      description: ''
+      description: '',
+      tags: {}
     }
   });
 
@@ -220,7 +269,8 @@ export default function TasksPage() {
       timePerUnit: task.timePerUnit,
       frequency: task.frequency,
       frequencyValue: task.frequencyValue,
-      description: task.description || ''
+      description: task.description || '',
+      tags: task.tags || {}
     });
     setShowAddForm(true);
   };
@@ -251,6 +301,7 @@ export default function TasksPage() {
     const freqText = task.frequency === 'daily'
       ? `每天 ${task.frequencyValue} 次`
       : `每周 ${task.frequencyValue} 次`;
+    const tags = task.tags || {};
 
     return (
       <motion.div
@@ -264,15 +315,41 @@ export default function TasksPage() {
             <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br", config.gradient)}>
               <Icon className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <h4 className="font-semibold text-gray-900">{task.name}</h4>
-              <div className="flex items-center gap-2 mt-1">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h4 className="font-semibold text-gray-900 truncate">{task.name}</h4>
+                {/* Subject Tag */}
+                {tags.subject && (
+                  <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", subjectConfig[tags.subject].bgColor, subjectConfig[tags.subject].color)}>
+                    {subjectConfig[tags.subject].label}
+                  </span>
+                )}
+                {/* Difficulty Tag */}
+                {tags.difficulty && (
+                  <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", difficultyConfig[tags.difficulty].bgColor, difficultyConfig[tags.difficulty].color)}>
+                    {difficultyConfig[tags.difficulty].label}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <span className="text-xs text-gray-500 flex items-center gap-1">
                   <Clock className="w-3 h-3" />
                   {task.timePerUnit}分钟/{task.unit}
                 </span>
                 <span className="text-xs text-gray-400">·</span>
                 <span className="text-xs text-gray-500">{freqText}</span>
+                {/* Format Tags */}
+                {tags.format && tags.format.map(f => (
+                  <span key={f} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                    {formatConfig[f].icon} {formatConfig[f].label}
+                  </span>
+                ))}
+                {/* Participation Tag */}
+                {tags.participation && (
+                  <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">
+                    {participationConfig[tags.participation].label}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -568,6 +645,108 @@ export default function TasksPage() {
                       placeholder={`${selectedFrequency === 'daily' ? '每天' : '每周'}执行次数`}
                       {...register('frequencyValue', { valueAsNumber: true })}
                     />
+                  </div>
+
+                  {/* Tags Section */}
+                  <div className="border-t border-gray-100 pt-5 mt-5">
+                    <p className="text-sm font-medium text-gray-700 mb-4">任务标签（可选）</p>
+
+                    {/* Subject Tag */}
+                    <div className="mb-4">
+                      <Label className="text-xs text-gray-500 mb-2 block">学科</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {(Object.keys(subjectConfig) as SubjectTag[]).map(subject => (
+                          <button
+                            key={subject}
+                            type="button"
+                            onClick={() => setValue('tags.subject', subject, { shouldDirty: true })}
+                            className={cn(
+                              "px-3 py-1.5 rounded-full text-xs font-medium transition-all border",
+                              watch('tags.subject') === subject
+                                ? cn(subjectConfig[subject].bgColor, subjectConfig[subject].color, "border-transparent")
+                                : "border-gray-200 text-gray-600 hover:border-gray-300 bg-white"
+                            )}
+                          >
+                            {subjectConfig[subject].label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Format Tags */}
+                    <div className="mb-4">
+                      <Label className="text-xs text-gray-500 mb-2 block">执行形式（可多选）</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {(Object.keys(formatConfig) as FormatTag[]).map(format => {
+                          const currentFormats = watch('tags.format') || [];
+                          const isSelected = currentFormats.includes(format);
+                          return (
+                            <button
+                              key={format}
+                              type="button"
+                              onClick={() => {
+                                const newFormats = isSelected
+                                  ? currentFormats.filter(f => f !== format)
+                                  : [...currentFormats, format];
+                                setValue('tags.format', newFormats, { shouldDirty: true });
+                              }}
+                              className={cn(
+                                "px-3 py-1.5 rounded-full text-xs font-medium transition-all border",
+                                isSelected
+                                  ? "bg-gray-800 text-white border-transparent"
+                                  : "border-gray-200 text-gray-600 hover:border-gray-300 bg-white"
+                              )}
+                            >
+                              {formatConfig[format].icon} {formatConfig[format].label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Participation Tag */}
+                    <div className="mb-4">
+                      <Label className="text-xs text-gray-500 mb-2 block">参与方式</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {(Object.keys(participationConfig) as ParticipationTag[]).map(participation => (
+                          <button
+                            key={participation}
+                            type="button"
+                            onClick={() => setValue('tags.participation', participation, { shouldDirty: true })}
+                            className={cn(
+                              "px-3 py-1.5 rounded-full text-xs font-medium transition-all border",
+                              watch('tags.participation') === participation
+                                ? "bg-indigo-100 text-indigo-700 border-transparent"
+                                : "border-gray-200 text-gray-600 hover:border-gray-300 bg-white"
+                            )}
+                          >
+                            {participationConfig[participation].label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Difficulty Tag */}
+                    <div>
+                      <Label className="text-xs text-gray-500 mb-2 block">难度</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {(Object.keys(difficultyConfig) as DifficultyTag[]).map(difficulty => (
+                          <button
+                            key={difficulty}
+                            type="button"
+                            onClick={() => setValue('tags.difficulty', difficulty, { shouldDirty: true })}
+                            className={cn(
+                              "px-3 py-1.5 rounded-full text-xs font-medium transition-all border",
+                              watch('tags.difficulty') === difficulty
+                                ? cn(difficultyConfig[difficulty].bgColor, difficultyConfig[difficulty].color, "border-transparent")
+                                : "border-gray-200 text-gray-600 hover:border-gray-300 bg-white"
+                            )}
+                          >
+                            {difficultyConfig[difficulty].label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </form>
               </div>
