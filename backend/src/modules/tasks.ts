@@ -23,6 +23,23 @@ const VALID_DIFFICULTIES = ['basic', 'advanced', 'challenge']
  * POST / - Create a new task
  * Body: { name, category, type, timePerUnit, weeklyRule, tags, appliesTo }
  */
+// Category mapping: Chinese to English
+const CATEGORY_MAP: Record<string, string> = {
+  '校内巩固': 'school',
+  '校内拔高': 'extra',
+  '课外课程': 'extra',
+  '英语阅读': 'english',
+  '体育运动': 'sports',
+  '中文阅读': 'chinese',
+}
+
+// Type mapping: Chinese to English
+const TYPE_MAP: Record<string, string> = {
+  '固定': 'fixed',
+  '灵活': 'flexible',
+  '跟随学校': 'follow',
+}
+
 tasksRouter.post('/', async (req: AuthRequest, res: Response) => {
   const { name, category, type, timePerUnit, weeklyRule, tags, appliesTo } = req.body
   const { familyId } = req.user!
@@ -31,15 +48,17 @@ tasksRouter.post('/', async (req: AuthRequest, res: Response) => {
     throw new AppError(400, 'Missing required fields: name, category, type')
   }
 
-  // Validate category
+  // Map Chinese category to English
+  const mappedCategory = CATEGORY_MAP[category] || category
   const validCategories = ['school', 'extra', 'english', 'sports', 'chinese']
-  if (!validCategories.includes(category)) {
+  if (!validCategories.includes(mappedCategory)) {
     throw new AppError(400, `Invalid category. Must be one of: ${validCategories.join(', ')}`)
   }
 
-  // Validate type
+  // Map Chinese type to English
+  const mappedType = TYPE_MAP[type] || type
   const validTypes = ['fixed', 'flexible', 'follow']
-  if (!validTypes.includes(type)) {
+  if (!validTypes.includes(mappedType)) {
     throw new AppError(400, `Invalid type. Must be one of: ${validTypes.join(', ')}`)
   }
 
@@ -66,8 +85,8 @@ tasksRouter.post('/', async (req: AuthRequest, res: Response) => {
     data: {
       familyId,
       name,
-      category,
-      type,
+      category: mappedCategory,
+      type: mappedType,
       timePerUnit: timePerUnit || 30,
       weeklyRule: weeklyRule || {},
       tags: validatedTags,
@@ -141,21 +160,44 @@ tasksRouter.get('/', async (req: AuthRequest, res: Response) => {
  * GET /:id - Get task by ID
  */
 tasksRouter.get('/:id', async (req: AuthRequest, res: Response) => {
-  const id = parseInt(req.params.id as string)
-  const { familyId } = req.user!
+  try {
+    const id = parseInt(req.params.id as string)
+    const { familyId } = req.user!
 
-  const task = await prisma.task.findFirst({
-    where: { id, familyId },
-  })
+    const task = await prisma.$queryRawUnsafe(
+      `SELECT id, family_id, name, category, type, time_per_unit, 
+              weekly_rule, sort_order, is_active, applies_to, created_at, updated_at
+       FROM tasks WHERE id = ${id} AND family_id = ${familyId} LIMIT 1`
+    ) as any[]
 
-  if (!task) {
-    throw new AppError(404, 'Task not found')
+    if (!task || task.length === 0) {
+      throw new AppError(404, 'Task not found')
+    }
+
+    const formattedTask = {
+      id: task[0].id,
+      familyId: task[0].family_id,
+      name: task[0].name,
+      category: task[0].category,
+      type: task[0].type,
+      timePerUnit: task[0].time_per_unit,
+      weeklyRule: task[0].weekly_rule,
+      sortOrder: task[0].sort_order,
+      isActive: task[0].is_active,
+      appliesTo: task[0].applies_to || [],
+      tags: {},
+      createdAt: task[0].created_at,
+      updatedAt: task[0].updated_at,
+    }
+
+    res.json({
+      status: 'success',
+      data: formattedTask,
+    })
+  } catch (error: any) {
+    console.error('[GET TASK] Error:', error)
+    throw new AppError(500, `Failed to get task: ${error.message}`)
   }
-
-  res.json({
-    status: 'success',
-    data: task,
-  })
 })
 
 /**
