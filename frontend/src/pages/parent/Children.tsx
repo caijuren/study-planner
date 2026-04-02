@@ -108,8 +108,8 @@ export default function ChildrenPage() {
     queryFn: fetchChildren,
     staleTime: 0,
     gcTime: 0,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
     retry: 2,
     retryDelay: 1000,
   });
@@ -259,23 +259,6 @@ export default function ChildrenPage() {
           <span>添加孩子</span>
         </Button>
       </div>
-
-      {/* PIN 说明卡片 */}
-      <Card className="border-0 shadow-lg shadow-gray-200/50 rounded-3xl overflow-hidden">
-        <CardContent className="p-5">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center shrink-0">
-              <span className="text-xl">💡</span>
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900">关于 PIN 码</h3>
-              <p className="text-sm text-gray-500 mt-1">
-                PIN 码是孩子的登录密码。孩子可以使用「家庭代码 + 孩子 PIN」的方式登录，无需记住复杂密码，适合小朋友使用。
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Children Cards */}
       {isLoading ? (

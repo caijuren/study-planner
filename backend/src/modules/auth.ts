@@ -460,7 +460,7 @@ authRouter.put('/children/:id', authMiddleware, requireRole('parent'), async (re
     const { name, avatar, pin } = req.body
     const { familyId, userId } = req.user!
 
-    console.log(`[UPDATE CHILD] User ${userId}, Family ${familyId}, Child ${id}, Name: ${name}`)
+    console.log(`[UPDATE CHILD] User ${userId}, Family ${familyId}, Child ${id}, Body:`, JSON.stringify(req.body))
 
     // Check if child exists and belongs to the family
     const existingChild = await prisma.user.findFirst({
@@ -473,13 +473,14 @@ authRouter.put('/children/:id', authMiddleware, requireRole('parent'), async (re
     })
 
     if (!existingChild) {
+      console.log(`[UPDATE CHILD] Child ${id} not found in family ${familyId}`)
       throw new AppError(404, '孩子不存在')
     }
 
     // Build update data
     const updateData: { name?: string; avatar?: string; passwordHash?: string } = {}
 
-    if (name) {
+    if (name !== undefined && name !== existingChild.name) {
       // Check if another child with the same name exists (excluding current child)
       const duplicateName = await prisma.user.findFirst({
         where: {
@@ -498,11 +499,12 @@ authRouter.put('/children/:id', authMiddleware, requireRole('parent'), async (re
       updateData.name = name
     }
 
-    if (avatar) {
+    if (avatar !== undefined) {
+      console.log(`[UPDATE CHILD] Setting avatar: ${avatar?.substring(0, 50)}...`)
       updateData.avatar = avatar
     }
 
-    if (pin) {
+    if (pin !== undefined && pin !== '') {
       // Validate PIN format (4-digit number)
       if (!/^\d{4}$/.test(pin)) {
         throw new AppError(400, 'PIN必须是4位数字')
