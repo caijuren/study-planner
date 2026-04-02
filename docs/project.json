@@ -3,6 +3,6 @@
   "sub_project_type": "",
   "name": "Study Planner",
   "app_slug": "study-planner",
-  "version_description": "修复导入图书错误处理",
+  "version_description": "修复Render端口绑定问题",
   "preview_type": "pc"
 }
