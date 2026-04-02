@@ -3,6 +3,6 @@
   "sub_project_type": "",
   "name": "Study Planner",
   "app_slug": "study-planner",
-  "version_description": "添加登录调试日志",
+  "version_description": "修复任务删除修改报错问题",
   "preview_type": "pc"
 }
