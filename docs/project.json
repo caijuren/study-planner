@@ -3,6 +3,6 @@
   "sub_project_type": "",
   "name": "Study Planner",
   "app_slug": "study-planner",
-  "version_description": "移除PIN卡片修复头像更新",
+  "version_description": "修复任务分类映射添加书籍导入",
   "preview_type": "pc"
 }

@@ -115,6 +115,35 @@ libraryRouter.put('/:id', async (req: AuthRequest, res: Response) => {
 })
 
 /**
+ * GET /:id - Get book details with reading logs
+ */
+libraryRouter.get('/:id', async (req: AuthRequest, res: Response) => {
+  const id = parseInt(req.params.id as string)
+  const { familyId } = req.user!
+
+  const book = await prisma.book.findFirst({
+    where: { id, familyId, status: 'active' },
+    include: {
+      readingLogs: {
+        orderBy: { readDate: 'desc' },
+        include: {
+          child: { select: { id: true, name: true, avatar: true } }
+        }
+      }
+    }
+  })
+
+  if (!book) {
+    throw new AppError(404, '图书不存在')
+  }
+
+  res.json({
+    status: 'success',
+    data: book,
+  })
+})
+
+/**
  * DELETE /:id - Delete book
  */
 libraryRouter.delete('/:id', async (req: AuthRequest, res: Response) => {

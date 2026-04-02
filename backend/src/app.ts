@@ -14,6 +14,7 @@ import { tasksRouter } from './modules/tasks'
 import { plansRouter } from './modules/plans'
 import { libraryRouter } from './modules/library'
 import { readingRouter } from './modules/reading'
+import { readingRouter as readingLogsRouter } from './modules/reading-logs'
 import { reportsRouter } from './modules/reports'
 import { statisticsRouter } from './modules/statistics'
 
@@ -46,6 +47,7 @@ export const createApp = (): Application => {
   app.use(`${env.API_PREFIX}/plans`, plansRouter)
   app.use(`${env.API_PREFIX}/library`, libraryRouter)
   app.use(`${env.API_PREFIX}/reading`, readingRouter)
+  app.use(`${env.API_PREFIX}/reading-logs`, readingLogsRouter)
   app.use(`${env.API_PREFIX}/reports`, reportsRouter)
   app.use(`${env.API_PREFIX}/statistics`, statisticsRouter)
 

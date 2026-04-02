@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -139,6 +140,7 @@ export default function LibraryPage() {
   const [bookToDelete, setBookToDelete] = useState<Book | null>(null);
   const [startReadingBook, setStartReadingBook] = useState<Book | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   const queryClient = useQueryClient();
 
@@ -493,7 +495,7 @@ export default function LibraryPage() {
                 </div>
 
                 {/* Info */}
-                <div className="p-3">
+                <div className="p-3 cursor-pointer" onClick={() => navigate(`/parent/library/${book.id}`)}>
                   <h4 className="font-semibold text-gray-900 text-sm truncate">
                     {book.name}
                   </h4>

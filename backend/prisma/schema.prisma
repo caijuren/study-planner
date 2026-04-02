@@ -156,16 +156,20 @@ model ReadingProgressLog {
 }
 
 model ReadingLog {
-  id        Int      @id @default(autoincrement())
-  familyId  Int      @map("family_id")
-  childId   Int      @map("child_id")
-  bookId    Int      @map("book_id")
-  pages     Int      @default(0)
-  minutes   Int      @default(0)
-  readDate  DateTime @map("read_date")
-  createdAt DateTime @default(now()) @map("created_at")
-  book      Book     @relation(fields: [bookId], references: [id])
-  child     User     @relation(fields: [childId], references: [id])
+  id           Int      @id @default(autoincrement())
+  familyId     Int      @map("family_id")
+  childId      Int?     @map("child_id")
+  bookId       Int      @map("book_id")
+  pages        Int      @default(0)
+  minutes      Int      @default(0)
+  readDate     DateTime @map("read_date")
+  effect       String   @default("") @db.VarChar(50)
+  performance  String   @default("") @db.VarChar(200)
+  note         String   @default("") @db.VarChar(500)
+  readStage    String   @default("") @map("read_stage") @db.VarChar(50)
+  createdAt    DateTime @default(now()) @map("created_at")
+  book         Book     @relation(fields: [bookId], references: [id])
+  child        User?    @relation(fields: [childId], references: [id])
 
   @@map("reading_logs")
 }
