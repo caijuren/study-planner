@@ -90,13 +90,14 @@ tasksRouter.get('/', async (req: AuthRequest, res: Response) => {
   const { familyId } = req.user!
   const childId = req.query.childId ? parseInt(req.query.childId as string) : undefined
 
-  let whereClause: any = { familyId }
+  let whereClause: any = { familyId, isActive: true }
 
   // If childId specified, filter tasks that apply to this child
   // appliesTo is empty array [] means applies to all children
   if (childId) {
     whereClause = {
       familyId,
+      isActive: true,
       OR: [
         { appliesTo: { equals: [] } }, // Empty array = all children
         { appliesTo: { has: childId } }, // Contains this child ID
@@ -229,26 +230,38 @@ tasksRouter.put('/:id', async (req: AuthRequest, res: Response) => {
  * DELETE /:id - Delete task
  */
 tasksRouter.delete('/:id', async (req: AuthRequest, res: Response) => {
-  const id = parseInt(req.params.id as string)
-  const { familyId } = req.user!
+  try {
+    const id = parseInt(req.params.id as string)
+    const { familyId } = req.user!
 
-  // Check task exists and belongs to family
-  const existingTask = await prisma.task.findFirst({
-    where: { id, familyId },
-  })
+    console.log(`[DELETE TASK] Task ${id}, Family ${familyId}`)
 
-  if (!existingTask) {
-    throw new AppError(404, 'Task not found')
+    // Check task exists and belongs to family
+    const existingTask = await prisma.task.findFirst({
+      where: { id, familyId },
+    })
+
+    if (!existingTask) {
+      throw new AppError(404, 'Task not found')
+    }
+
+    // Soft delete by marking as inactive instead of hard delete
+    // This avoids foreign key constraint issues
+    await prisma.task.update({
+      where: { id },
+      data: { isActive: false },
+    })
+
+    console.log(`[DELETE TASK] Success: Task ${id} marked as inactive`)
+
+    res.json({
+      status: 'success',
+      message: 'Task deleted successfully',
+    })
+  } catch (error: any) {
+    console.error('[DELETE TASK] Error:', error)
+    throw new AppError(500, `Delete failed: ${error.message}`)
   }
-
-  await prisma.task.delete({
-    where: { id },
-  })
-
-  res.json({
-    status: 'success',
-    message: 'Task deleted successfully',
-  })
 })
 
 /**
