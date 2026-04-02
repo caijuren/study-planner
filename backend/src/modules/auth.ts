@@ -455,76 +455,85 @@ authRouter.get('/children', authMiddleware, requireRole('parent'), async (req: A
  * Auth required, parent only
  */
 authRouter.put('/children/:id', authMiddleware, requireRole('parent'), async (req: AuthRequest, res: Response) => {
-  const id = parseInt(req.params.id as string)
-  const { name, avatar, pin } = req.body
-  const { familyId } = req.user!
+  try {
+    const id = parseInt(req.params.id as string)
+    const { name, avatar, pin } = req.body
+    const { familyId, userId } = req.user!
 
-  // Check if child exists and belongs to the family
-  const existingChild = await prisma.user.findFirst({
-    where: {
-      id,
-      familyId,
-      role: 'child',
-      status: 'active',
-    },
-  })
+    console.log(`[UPDATE CHILD] User ${userId}, Family ${familyId}, Child ${id}, Name: ${name}`)
 
-  if (!existingChild) {
-    throw new AppError(404, '孩子不存在')
-  }
-
-  // Build update data
-  const updateData: { name?: string; avatar?: string; passwordHash?: string } = {}
-
-  if (name) {
-    // Check if another child with the same name exists (excluding current child)
-    const duplicateName = await prisma.user.findFirst({
+    // Check if child exists and belongs to the family
+    const existingChild = await prisma.user.findFirst({
       where: {
+        id,
         familyId,
-        name,
         role: 'child',
         status: 'active',
-        NOT: { id },
       },
     })
 
-    if (duplicateName) {
-      throw new AppError(409, '该名字的孩子已存在')
+    if (!existingChild) {
+      throw new AppError(404, '孩子不存在')
     }
 
-    updateData.name = name
-  }
+    // Build update data
+    const updateData: { name?: string; avatar?: string; passwordHash?: string } = {}
 
-  if (avatar) {
-    updateData.avatar = avatar
-  }
+    if (name) {
+      // Check if another child with the same name exists (excluding current child)
+      const duplicateName = await prisma.user.findFirst({
+        where: {
+          familyId,
+          name,
+          role: 'child',
+          status: 'active',
+          NOT: { id },
+        },
+      })
 
-  if (pin) {
-    // Validate PIN format (4-digit number)
-    if (!/^\d{4}$/.test(pin)) {
-      throw new AppError(400, 'PIN必须是4位数字')
+      if (duplicateName) {
+        throw new AppError(409, '该名字的孩子已存在')
+      }
+
+      updateData.name = name
     }
-    updateData.passwordHash = await bcrypt.hash(pin, 12)
+
+    if (avatar) {
+      updateData.avatar = avatar
+    }
+
+    if (pin) {
+      // Validate PIN format (4-digit number)
+      if (!/^\d{4}$/.test(pin)) {
+        throw new AppError(400, 'PIN必须是4位数字')
+      }
+      updateData.passwordHash = await bcrypt.hash(pin, 12)
+    }
+
+    // Update child
+    const updatedChild = await prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        avatar: true,
+        role: true,
+        updatedAt: true,
+      },
+    })
+
+    console.log(`[UPDATE CHILD] Success: Child ${id} updated`)
+
+    res.json({
+      status: 'success',
+      message: '孩子信息更新成功',
+      data: updatedChild,
+    })
+  } catch (error: any) {
+    console.error('[UPDATE CHILD] Error:', error)
+    throw new AppError(500, `更新失败: ${error.message}`)
   }
-
-  // Update child
-  const updatedChild = await prisma.user.update({
-    where: { id },
-    data: updateData,
-    select: {
-      id: true,
-      name: true,
-      avatar: true,
-      role: true,
-      updatedAt: true,
-    },
-  })
-
-  res.json({
-    status: 'success',
-    message: '孩子信息更新成功',
-    data: updatedChild,
-  })
 })
 
 /**
