@@ -246,17 +246,27 @@ tasksRouter.put('/:id', async (req: AuthRequest, res: Response) => {
 tasksRouter.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const id = parseInt(req.params.id as string)
-    const { familyId } = req.user!
+    const { familyId, userId } = req.user!
 
-    console.log(`[DELETE TASK] Task ${id}, Family ${familyId}`)
+    console.log(`[DELETE TASK] User ${userId}, Task ${id}, Family ${familyId}`)
 
-    // Use raw query to avoid schema mismatch issues
-    const existingTask = await prisma.$queryRawUnsafe(
-      `SELECT id FROM tasks WHERE id = ${id} AND family_id = ${familyId} LIMIT 1`
+    // First check if task exists at all
+    const anyTask = await prisma.$queryRawUnsafe(
+      `SELECT id, family_id, name FROM tasks WHERE id = ${id} LIMIT 1`
     ) as any[]
 
-    if (!existingTask || existingTask.length === 0) {
-      throw new AppError(404, 'Task not found')
+    if (!anyTask || anyTask.length === 0) {
+      console.log(`[DELETE TASK] Task ${id} not found in database`)
+      throw new AppError(404, '任务不存在')
+    }
+
+    const task = anyTask[0]
+    console.log(`[DELETE TASK] Found task:`, task)
+
+    // Check if task belongs to user's family
+    if (task.family_id !== familyId) {
+      console.log(`[DELETE TASK] Task family_id ${task.family_id} != user family_id ${familyId}`)
+      throw new AppError(403, '您没有权限删除此任务')
     }
 
     // Soft delete by marking as inactive
@@ -272,7 +282,7 @@ tasksRouter.delete('/:id', async (req: AuthRequest, res: Response) => {
     })
   } catch (error: any) {
     console.error('[DELETE TASK] Error:', error)
-    throw new AppError(500, `Delete failed: ${error.message}`)
+    throw new AppError(500, `删除失败: ${error.message}`)
   }
 })
 
