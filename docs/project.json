@@ -3,6 +3,6 @@
   "sub_project_type": "",
   "name": "趣学伴",
   "app_slug": "study-planner",
-  "version_description": "重命名为趣学伴并移除页脚",
+  "version_description": "修复刷新后登录状态丢失问题",
   "preview_type": "pc"
 }

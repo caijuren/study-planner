@@ -69,28 +69,22 @@ const presetAvatars = ['🦊', '🐼', '🐨', '🦁', '🐯', '🐰', '🐻', '
 // API functions
 async function fetchChildren(): Promise<Child[]> {
   const { data } = await apiClient.get('/auth/children');
-  return data;
+  return data.data || [];
 }
 
 async function addChild(child: ChildFormData): Promise<Child> {
   const { data } = await apiClient.post('/auth/add-child', child);
-  return data;
+  return data.data;
 }
 
 async function updateChild(id: string, child: ChildFormData): Promise<Child> {
   const { data } = await apiClient.put(`/auth/children/${id}`, child);
-  return data;
+  return data.data;
 }
 
 async function deleteChild(id: string): Promise<void> {
   await apiClient.delete(`/auth/children/${id}`);
 }
-
-// Mock data
-const mockChildren: Child[] = [
-  { id: '1', name: '小明', avatar: '🦊', pin: '1234', weeklyProgress: 92, todayMinutes: 45, completedTasks: 5, totalTasks: 6, streak: 7, achievements: 12 },
-  { id: '2', name: '小红', avatar: '🐰', pin: '5678', weeklyProgress: 78, todayMinutes: 32, completedTasks: 4, totalTasks: 5, streak: 3, achievements: 8 }
-];
 
 export default function ChildrenPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -110,10 +104,9 @@ export default function ChildrenPage() {
     defaultValues: { name: '', avatar: '🦊', pin: '' }
   });
 
-  const { data: children, isLoading } = useQuery({
+  const { data: children = [], isLoading } = useQuery({
     queryKey: ['children'],
     queryFn: fetchChildren,
-    initialData: mockChildren,
     staleTime: 5 * 60 * 1000
   });
 
