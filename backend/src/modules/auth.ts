@@ -39,23 +39,20 @@ authRouter.post('/register', async (req, res: Response) => {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 12)
 
-    // Create or get default family for the user
-    let family = await prisma.family.findFirst({
-      where: { familyCode: 'default' }
-    })
+    // Generate unique family code
+    const familyCode = `F${Date.now().toString(36).toUpperCase()}`
 
-    if (!family) {
-      family = await prisma.family.create({
-        data: {
-          name: '默认家庭',
-          familyCode: 'default',
-          settings: {
-            dailyTimeLimit: 210,
-            dingtalkWebhook: '',
-          },
+    // Create a new family for each registered user
+    const family = await prisma.family.create({
+      data: {
+        name: `${username}的家庭`,
+        familyCode,
+        settings: {
+          dailyTimeLimit: 210,
+          dingtalkWebhook: '',
         },
-      })
-    }
+      },
+    })
 
     // Create user
     const user = await prisma.user.create({
