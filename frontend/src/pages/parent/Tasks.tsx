@@ -60,7 +60,7 @@ interface Child {
 }
 
 interface Task {
-  id: string;
+  id: number;
   name: string;
   category: TaskCategory;
   type: TaskType;
@@ -145,17 +145,6 @@ const difficultyConfig: Record<DifficultyTag, { label: string; color: string; bg
   challenge: { label: '挑战', color: 'text-purple-600', bgColor: 'bg-purple-100' },
 };
 
-// Mock data
-const mockTasks: Task[] = [
-  { id: '1', name: '校内作业', category: '校内巩固', type: '固定', quantity: 1, unit: '次', timePerUnit: 30, frequency: 'daily', frequencyValue: 1 },
-  { id: '2', name: 'ABC Reading', category: '英语阅读', type: '固定', quantity: 1, unit: '次', timePerUnit: 30, frequency: 'daily', frequencyValue: 1 },
-  { id: '3', name: '体育运动', category: '体育运动', type: '固定', quantity: 1, unit: '次', timePerUnit: 30, frequency: 'daily', frequencyValue: 1 },
-  { id: '4', name: '语文一课一练', category: '校内巩固', type: '灵活', quantity: 1, unit: '次', timePerUnit: 30, frequency: 'weekly', frequencyValue: 1 },
-  { id: '5', name: '数学一课一练', category: '校内巩固', type: '灵活', quantity: 1, unit: '次', timePerUnit: 30, frequency: 'weekly', frequencyValue: 1 },
-  { id: '6', name: '培优满分精练', category: '校内拔高', type: '灵活', quantity: 1, unit: '次', timePerUnit: 30, frequency: 'weekly', frequencyValue: 1 },
-  { id: '7', name: '高思数学', category: '校内拔高', type: '灵活', quantity: 2, unit: '章', timePerUnit: 30, frequency: 'weekly', frequencyValue: 2 },
-];
-
 // API functions
 async function fetchChildren(): Promise<Child[]> {
   const { data } = await apiClient.get('/auth/children');
@@ -165,7 +154,7 @@ async function fetchChildren(): Promise<Child[]> {
 async function fetchTasks(childId?: number): Promise<Task[]> {
   const params = childId ? `?childId=${childId}` : '';
   const { data } = await apiClient.get(`/tasks${params}`);
-  return data.data || mockTasks;
+  return data.data || [];
 }
 
 async function createTask(task: TaskFormData): Promise<Task> {
@@ -173,12 +162,12 @@ async function createTask(task: TaskFormData): Promise<Task> {
   return data.data;
 }
 
-async function updateTask(id: string, task: TaskFormData): Promise<Task> {
+async function updateTask(id: number, task: TaskFormData): Promise<Task> {
   const { data } = await apiClient.put(`/tasks/${id}`, task);
   return data.data;
 }
 
-async function deleteTask(id: string): Promise<void> {
+async function deleteTask(id: number): Promise<void> {
   await apiClient.delete(`/tasks/${id}`);
 }
 
@@ -226,10 +215,9 @@ export default function TasksPage() {
     queryFn: fetchChildren,
   });
 
-  const { data: tasks = mockTasks, isLoading } = useQuery({
+  const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks', selectedChildFilter],
     queryFn: () => fetchTasks(selectedChildFilter === 'all' ? undefined : selectedChildFilter),
-    initialData: mockTasks
   });
 
   const createMutation = useMutation({
@@ -246,7 +234,7 @@ export default function TasksPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: TaskFormData }) => updateTask(id, data),
+    mutationFn: ({ id, data }: { id: number; data: TaskFormData }) => updateTask(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       toast.success('任务更新成功');
@@ -315,8 +303,8 @@ export default function TasksPage() {
     reset();
   };
 
-  const fixedTasks = tasks.filter(t => t.type === '固定');
-  const flexibleTasks = tasks.filter(t => t.type === '灵活' || t.type === '跟随学校');
+  const fixedTasks = tasks.filter((t: Task) => t.type === '固定');
+  const flexibleTasks = tasks.filter((t: Task) => t.type === '灵活' || t.type === '跟随学校');
 
   const TaskCard = ({ task }: { task: Task }) => {
     const config = categoryConfig[task.category];
