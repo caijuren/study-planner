@@ -99,6 +99,7 @@ async function migrateFamily(): Promise<{ token: string; user: any; migratedChil
 }
 
 export default function ChildrenPage() {
+  console.log('[ChildrenPage] Rendering');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingChild, setEditingChild] = useState<Child | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);

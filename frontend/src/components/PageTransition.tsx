@@ -1,4 +1,5 @@
-import { motion } from "./MotionPrimitives";
+// Animation temporarily disabled to fix white screen issues
+// import { motion } from "./MotionPrimitives";
 
 const variants = {
   fade: {
@@ -41,18 +42,8 @@ interface PageTransitionProps {
  * ⚠️ 重要：此组件只包裹页面内容区域，
  * Navbar/Header/Sidebar 必须在 AnimatedRoutes 外部，不要包在 PageTransition 里。
  */
-export function PageTransition({ children, transition = "fade" }: PageTransitionProps) {
-  const v = variants[transition];
-
-  return (
-    <motion.div
-      layout
-      initial={v.initial}
-      animate={v.animate}
-      exit={v.exit}
-      transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
+export function PageTransition({ children }: PageTransitionProps) {
+  // Simplified version without animation to prevent white screen issues
+  // Animation can be re-enabled once the root cause is identified
+  return <>{children}</>;
 }

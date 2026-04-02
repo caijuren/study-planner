@@ -58,6 +58,7 @@ export default function ParentLayout() {
 
   // 初始化中显示加载状态，避免子组件访问未定义数据
   if (isInitializing) {
+    console.log('[Layout] Initializing...');
     return (
       <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -70,10 +71,13 @@ export default function ParentLayout() {
     );
   }
 
-  // 未登录不渲染任何内容
+  // 未登录不渲染任何内容（会由useEffect重定向）
   if (!isAuthenticated) {
+    console.log('[Layout] Not authenticated, rendering null');
     return null;
   }
+
+  console.log('[Layout] Rendering with user:', user?.name, 'familyCode:', user?.familyCode);
 
   const handleLogout = () => {
     logout();

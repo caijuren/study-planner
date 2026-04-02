@@ -3,6 +3,6 @@
   "sub_project_type": "",
   "name": "Study Planner",
   "app_slug": "study-planner",
-  "version_description": "修复刷新白屏问题",
+  "version_description": "添加错误边界和错误处理",
   "preview_type": "pc"
 }
