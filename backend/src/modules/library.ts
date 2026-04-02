@@ -1,9 +1,14 @@
 import { Router, Response } from 'express'
+import multer from 'multer'
+import * as XLSX from 'xlsx'
 import { prisma } from '../config/database'
 import { AppError } from '../middleware/errorHandler'
 import { authMiddleware, AuthRequest, requireRole } from '../middleware/auth'
 
 export const libraryRouter: Router = Router()
+
+// Configure multer for file uploads
+const upload = multer({ storage: multer.memoryStorage() })
 
 // All routes require authentication and parent role
 libraryRouter.use(authMiddleware)
@@ -265,5 +270,84 @@ libraryRouter.get('/stats', async (req: AuthRequest, res: Response) => {
       newThisMonth,
       topBooks,
     },
+  })
+})
+
+/**
+ * POST /import - Import books from Excel file
+ */
+libraryRouter.post('/import', upload.single('file'), async (req: AuthRequest, res: Response) => {
+  const { familyId } = req.user!
+  const file = req.file
+
+  if (!file) {
+    throw new AppError(400, '请上传文件')
+  }
+
+  // Parse Excel
+  const workbook = XLSX.read(file.buffer, { type: 'buffer' })
+  const sheet = workbook.Sheets[workbook.SheetNames[0]]
+  const data = XLSX.utils.sheet_to_json(sheet)
+
+  console.log(`[IMPORT] Found ${data.length} rows in Excel`)
+
+  // Type mapping
+  const typeMap: Record<string, string> = {
+    '儿童故事': 'fiction',
+    '性格养成': 'character',
+    '科学新知': 'science',
+    '数学知识': 'math',
+    '英语绘本': 'english',
+    '国学经典': 'chinese',
+    '历史故事': 'history',
+    '百科全书': 'encyclopedia',
+  }
+
+  let imported = 0
+  let skipped = 0
+
+  for (const row of data as any[]) {
+    const name = row['书名']
+    if (!name) {
+      skipped++
+      continue
+    }
+
+    // Check if book already exists
+    const existing = await prisma.book.findFirst({
+      where: { familyId, name: String(name) }
+    })
+
+    if (existing) {
+      skipped++
+      continue
+    }
+
+    // Map type
+    const excelType = row['类型'] || ''
+    const bookType = typeMap[excelType] || 'fiction'
+
+    // Create book
+    await prisma.book.create({
+      data: {
+        familyId,
+        name: String(name),
+        author: String(row['作者'] || ''),
+        type: bookType,
+        characterTag: String(row['阅读阶段'] || ''),
+        coverUrl: '',
+        totalPages: 0,
+      }
+    })
+
+    imported++
+  }
+
+  console.log(`[IMPORT] Completed: ${imported} imported, ${skipped} skipped`)
+
+  res.json({
+    status: 'success',
+    message: `导入完成：成功 ${imported} 本，跳过 ${skipped} 本`,
+    data: { imported, skipped },
   })
 })

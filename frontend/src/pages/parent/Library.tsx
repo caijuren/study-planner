@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
@@ -139,7 +140,10 @@ export default function LibraryPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [bookToDelete, setBookToDelete] = useState<Book | null>(null);
   const [startReadingBook, setStartReadingBook] = useState<Book | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{imported: number; skipped: number} | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
   const queryClient = useQueryClient();
@@ -287,6 +291,42 @@ export default function LibraryPage() {
     reader.readAsDataURL(file);
   };
 
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      toast.error('请选择Excel文件 (.xlsx 或 .xls)');
+      return;
+    }
+
+    setImporting(true);
+    setImportResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const { data } = await apiClient.post('/library/import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setImportResult({
+        imported: data.data.imported,
+        skipped: data.data.skipped,
+      });
+      queryClient.invalidateQueries({ queryKey: ['library'] });
+      queryClient.invalidateQueries({ queryKey: ['libraryStats'] });
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setImporting(false);
+      if (importInputRef.current) {
+        importInputRef.current.value = '';
+      }
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -313,14 +353,49 @@ export default function LibraryPage() {
           <h1 className="text-2xl font-bold text-gray-900">图书馆</h1>
           <p className="text-gray-500 mt-1">管理家庭藏书，开始新的阅读之旅</p>
         </div>
-        <Button
-          onClick={() => setShowAddForm(true)}
-          className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-xl px-6 h-11 shadow-lg shadow-purple-500/25"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          添加图书
-        </Button>
+        <div className="flex gap-2">
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            onChange={handleImportFile}
+            className="hidden"
+          />
+          <Button
+            variant="outline"
+            onClick={() => importInputRef.current?.click()}
+            disabled={importing}
+            className="rounded-xl h-11"
+          >
+            <Upload className="w-5 h-5 mr-2" />
+            {importing ? '导入中...' : '批量导入'}
+          </Button>
+          <Button
+            onClick={() => setShowAddForm(true)}
+            className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-xl px-6 h-11 shadow-lg shadow-purple-500/25"
+          >
+            <Plus className="w-5 h-5 mr-2" />
+            添加图书
+          </Button>
+        </div>
       </div>
+
+      {/* Import Result */}
+      {importResult && (
+        <Card className="border-2 border-green-200 bg-green-50 rounded-3xl">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-gray-900">导入完成</h3>
+                <p className="text-sm text-gray-600">
+                  ✅ 成功导入 {importResult.imported} 本，跳过 {importResult.skipped} 本（已存在）
+                </p>
+              </div>
+              <Button variant="ghost" onClick={() => setImportResult(null)}>关闭</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -5,7 +5,7 @@
     "url": "/"
   },
   {
-    "pageKey": "uc91vv",
+    "pageKey": "8l0g16",
     "title": "/child",
     "url": "/child"
   },
@@ -30,7 +30,7 @@
     "url": "/login"
   },
   {
-    "pageKey": "s8os3x",
+    "pageKey": "nunzsw",
     "title": "/parent",
     "url": "/parent"
   },
@@ -48,6 +48,11 @@
     "pageKey": "ParentLibrary",
     "title": "Library",
     "url": "/parent/library"
+  },
+  {
+    "pageKey": "BookDetail",
+    "title": "Book Detail",
+    "url": "/parent/library/:id"
   },
   {
     "pageKey": "ParentPlans",
