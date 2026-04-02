@@ -128,6 +128,8 @@ authRouter.post('/login', async (req, res: Response) => {
     throw new AppError(401, '用户名或密码错误')
   }
 
+  console.log(`[LOGIN] User ${user.name} (ID: ${user.id}), Family ${user.familyId}, FamilyCode: ${user.family.familyCode}`)
+
   // Generate JWT token
   const token = generateToken({
     id: user.id,
