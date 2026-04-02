@@ -277,59 +277,64 @@ libraryRouter.get('/stats', async (req: AuthRequest, res: Response) => {
  * POST /import - Import books from Excel file
  */
 libraryRouter.post('/import', upload.single('file'), async (req: AuthRequest, res: Response) => {
-  const { familyId } = req.user!
-  const file = req.file
+  try {
+    const { familyId } = req.user!
+    const file = req.file
 
-  if (!file) {
-    throw new AppError(400, '请上传文件')
-  }
+    console.log(`[IMPORT] Starting import for family ${familyId}`)
 
-  // Parse Excel
-  const workbook = XLSX.read(file.buffer, { type: 'buffer' })
-  const sheet = workbook.Sheets[workbook.SheetNames[0]]
-  const data = XLSX.utils.sheet_to_json(sheet)
-
-  console.log(`[IMPORT] Found ${data.length} rows in Excel`)
-
-  // Type mapping
-  const typeMap: Record<string, string> = {
-    '儿童故事': 'fiction',
-    '性格养成': 'character',
-    '科学新知': 'science',
-    '数学知识': 'math',
-    '英语绘本': 'english',
-    '国学经典': 'chinese',
-    '历史故事': 'history',
-    '百科全书': 'encyclopedia',
-  }
-
-  let imported = 0
-  let skipped = 0
-
-  for (const row of data as any[]) {
-    const name = row['书名']
-    if (!name) {
-      skipped++
-      continue
+    if (!file) {
+      throw new AppError(400, '请上传文件')
     }
 
-    // Check if book already exists
-    const existing = await prisma.book.findFirst({
-      where: { familyId, name: String(name) }
-    })
+    console.log(`[IMPORT] File received: ${file.originalname}, size: ${file.size}`)
 
-    if (existing) {
-      skipped++
-      continue
+    // Parse Excel
+    const workbook = XLSX.read(file.buffer, { type: 'buffer' })
+    const sheet = workbook.Sheets[workbook.SheetNames[0]]
+    const data = XLSX.utils.sheet_to_json(sheet)
+
+    console.log(`[IMPORT] Found ${data.length} rows in Excel`)
+
+    // Type mapping
+    const typeMap: Record<string, string> = {
+      '儿童故事': 'fiction',
+      '性格养成': 'character',
+      '科学新知': 'science',
+      '数学知识': 'math',
+      '英语绘本': 'english',
+      '国学经典': 'chinese',
+      '历史故事': 'history',
+      '百科全书': 'encyclopedia',
     }
 
-    // Map type
-    const excelType = row['类型'] || ''
-    const bookType = typeMap[excelType] || 'fiction'
+    let imported = 0
+    let skipped = 0
+    const batchSize = 100
+    const booksToCreate: any[] = []
 
-    // Create book
-    await prisma.book.create({
-      data: {
+    for (const row of data as any[]) {
+      const name = row['书名']
+      if (!name) {
+        skipped++
+        continue
+      }
+
+      // Check if book already exists
+      const existing = await prisma.book.findFirst({
+        where: { familyId, name: String(name) }
+      })
+
+      if (existing) {
+        skipped++
+        continue
+      }
+
+      // Map type
+      const excelType = row['类型'] || ''
+      const bookType = typeMap[excelType] || 'fiction'
+
+      booksToCreate.push({
         familyId,
         name: String(name),
         author: String(row['作者'] || ''),
@@ -337,17 +342,32 @@ libraryRouter.post('/import', upload.single('file'), async (req: AuthRequest, re
         characterTag: String(row['阅读阶段'] || ''),
         coverUrl: '',
         totalPages: 0,
+      })
+
+      // Batch insert
+      if (booksToCreate.length >= batchSize) {
+        await prisma.book.createMany({ data: booksToCreate, skipDuplicates: true })
+        imported += booksToCreate.length
+        booksToCreate.length = 0
+        console.log(`[IMPORT] Batch inserted, total: ${imported}`)
       }
+    }
+
+    // Insert remaining books
+    if (booksToCreate.length > 0) {
+      await prisma.book.createMany({ data: booksToCreate, skipDuplicates: true })
+      imported += booksToCreate.length
+    }
+
+    console.log(`[IMPORT] Completed: ${imported} imported, ${skipped} skipped`)
+
+    res.json({
+      status: 'success',
+      message: `导入完成：成功 ${imported} 本，跳过 ${skipped} 本`,
+      data: { imported, skipped },
     })
-
-    imported++
+  } catch (error: any) {
+    console.error('[IMPORT] Error:', error)
+    throw new AppError(500, `导入失败: ${error.message}`)
   }
-
-  console.log(`[IMPORT] Completed: ${imported} imported, ${skipped} skipped`)
-
-  res.json({
-    status: 'success',
-    message: `导入完成：成功 ${imported} 本，跳过 ${skipped} 本`,
-    data: { imported, skipped },
-  })
 })
