@@ -357,35 +357,12 @@ authRouter.post('/migrate-family', authMiddleware, requireRole('parent'), async 
     },
   })
 
-  // Get all children of this parent (by checking who was created by this parent's session)
-  // Since we don't track createdBy, we'll migrate all children in the old family
-  // But for shared families, we should only migrate children added by this user
-
-  // For 'default' family: migrate all children associated with this parent
-  // This is a simplified approach - in production you'd want to track createdBy
-  const childrenToMigrate = await prisma.user.findMany({
-    where: {
-      familyId: currentFamilyId,
-      role: 'child',
-      status: 'active',
-    }
-  })
-
-  // Update parent's family
+  // Update parent's family (don't auto-migrate children from shared family)
+  // Users should re-add their own children after migration
   await prisma.user.update({
     where: { id: userId },
     data: { familyId: newFamily.id }
   })
-
-  // Update children's family
-  if (childrenToMigrate.length > 0) {
-    await prisma.user.updateMany({
-      where: {
-        id: { in: childrenToMigrate.map(c => c.id) }
-      },
-      data: { familyId: newFamily.id }
-    })
-  }
 
   // Generate new token with new familyId
   const user = await prisma.user.findUnique({
@@ -415,7 +392,6 @@ authRouter.post('/migrate-family', authMiddleware, requireRole('parent'), async 
         familyCode: newFamily.familyCode,
         avatar: user!.avatar,
       },
-      migratedChildren: childrenToMigrate.length,
     },
   })
 })

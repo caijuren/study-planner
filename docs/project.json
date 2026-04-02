@@ -3,6 +3,6 @@
   "sub_project_type": "",
   "name": "Study Planner",
   "app_slug": "study-planner",
-  "version_description": "修复用户共用家庭问题",
+  "version_description": "添加家庭迁移功能",
   "preview_type": "pc"
 }

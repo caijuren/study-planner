@@ -106,7 +106,7 @@ export default function ChildrenPage() {
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, updateAuth } = useAuth();
   
   // Check if user needs migration (in shared 'default' family)
   const needsMigration = user?.familyCode === 'default';
@@ -232,18 +232,11 @@ export default function ChildrenPage() {
     setMigrating(true);
     try {
       const result = await migrateFamily();
-      // Update auth state with new token
-      localStorage.setItem('auth_token', result.token);
-      const stored = localStorage.getItem('auth_state');
-      if (stored) {
-        const authState = JSON.parse(stored);
-        authState.token = result.token;
-        authState.user = result.user;
-        localStorage.setItem('auth_state', JSON.stringify(authState));
-      }
-      toast.success(`家庭迁移成功！已迁移 ${result.migratedChildren} 个孩子`);
+      // Update auth state with new token and user
+      updateAuth({ token: result.token, user: result.user });
+      toast.success('家庭迁移成功！请重新添加您的孩子');
       queryClient.invalidateQueries({ queryKey: ['children'] });
-      // Reload to refresh auth state
+      // Reload to refresh all data
       window.location.reload();
     } catch (error) {
       toast.error(getErrorMessage(error));

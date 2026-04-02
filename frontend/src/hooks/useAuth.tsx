@@ -10,6 +10,7 @@ interface AuthContextType extends AuthState {
   logout: () => void;
   addChild: (child: { name: string; pin: string; avatar: string }) => Promise<void>;
   switchUser: (user: User) => void;
+  updateAuth: (data: { token: string; user: User }) => void;
   isLoading: boolean;
   isInitializing: boolean;
   error: string | null;
@@ -212,6 +213,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     redirectByRole(user);
   }, [redirectByRole]);
 
+  const updateAuth = useCallback((data: { token: string; user: User }) => {
+    setState({
+      user: data.user,
+      token: data.token,
+      isAuthenticated: true,
+    });
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -222,6 +231,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout,
         addChild,
         switchUser,
+        updateAuth,
         isLoading,
         isInitializing,
         error,
