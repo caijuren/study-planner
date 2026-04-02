@@ -3,6 +3,6 @@
   "sub_project_type": "",
   "name": "Study Planner",
   "app_slug": "study-planner",
-  "version_description": "添加孩子操作调试日志",
+  "version_description": "添加修改孩子错误处理",
   "preview_type": "pc"
 }

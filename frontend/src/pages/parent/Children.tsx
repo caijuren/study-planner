@@ -39,8 +39,6 @@ import {
 import { apiClient, getErrorMessage } from '@/lib/api-client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
-import { AlertTriangle } from 'lucide-react';
 
 // Types
 interface Child {
@@ -88,18 +86,7 @@ async function deleteChild(id: number): Promise<void> {
   await apiClient.delete(`/auth/children/${id}`);
 }
 
-async function deleteAllChildren(): Promise<number> {
-  const { data } = await apiClient.delete('/auth/children/all');
-  return data.data.deletedCount;
-}
-
-async function migrateFamily(): Promise<{ token: string; user: any; migratedChildren: number }> {
-  const { data } = await apiClient.post('/auth/migrate-family');
-  return data.data;
-}
-
 export default function ChildrenPage() {
-  console.log('[ChildrenPage] Rendering');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingChild, setEditingChild] = useState<Child | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -107,23 +94,17 @@ export default function ChildrenPage() {
   const [selectedAvatar, setSelectedAvatar] = useState<string>('🦊');
   const [customAvatar, setCustomAvatar] = useState<string | null>(null);
   const [avatarMode, setAvatarMode] = useState<'preset' | 'custom'>('preset');
-  const [migrating, setMigrating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, updateAuth } = useAuth();
-  
-  // Check if user needs migration (in shared 'default' family)
-  const needsMigration = user?.familyCode === 'default';
-
   const { register, handleSubmit, setValue, reset, formState: { errors } } = useForm<ChildFormData>({
     resolver: zodResolver(childSchema),
     defaultValues: { name: '', avatar: '🦊', pin: '' }
   });
 
   const { data: children = [], isLoading, error: queryError } = useQuery({
-    queryKey: ['children', user?.familyId],
+    queryKey: ['children'],
     queryFn: fetchChildren,
     staleTime: 0,
     gcTime: 0,
@@ -246,23 +227,6 @@ export default function ChildrenPage() {
 
   const handleDelete = () => childToDelete && deleteMutation.mutate(childToDelete.id);
   const switchToChildView = (_childId: number) => navigate('/child');
-  
-  const handleMigrate = async () => {
-    setMigrating(true);
-    try {
-      const result = await migrateFamily();
-      // Update auth state with new token and user
-      updateAuth({ token: result.token, user: result.user });
-      toast.success('家庭迁移成功！请重新添加您的孩子');
-      queryClient.invalidateQueries({ queryKey: ['children'] });
-      // Reload to refresh all data
-      window.location.reload();
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setMigrating(false);
-    }
-  };
 
   const renderAvatar = (child: Child) => {
     const avatar = child.avatar || '👶';
@@ -295,68 +259,6 @@ export default function ChildrenPage() {
           <span>添加孩子</span>
         </Button>
       </div>
-
-      {/* Migration Warning */}
-      {needsMigration && (
-        <Card className="border-2 border-amber-200 bg-amber-50 shadow-lg rounded-3xl overflow-hidden">
-          <CardContent className="p-5">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center shrink-0">
-                <AlertTriangle className="size-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-900">需要迁移家庭</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  您的账号当前在共享家庭中。为了确保数据独立，请点击下方按钮创建您的专属家庭空间。
-                </p>
-                <Button
-                  onClick={handleMigrate}
-                  disabled={migrating}
-                  className="mt-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl"
-                >
-                  {migrating ? '迁移中...' : '立即迁移'}
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Clear Children Warning - for migrated users with unwanted children */}
-      {user?.familyCode?.startsWith('F') && children && children.length > 0 && (
-        <Card className="border-2 border-red-200 bg-red-50 shadow-lg rounded-3xl overflow-hidden">
-          <CardContent className="p-5">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-400 to-rose-400 flex items-center justify-center shrink-0">
-                <AlertTriangle className="size-6 text-white" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-gray-900">数据清理提示</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  如果孩子列表中有不属于您的数据，可以点击下方按钮清除所有孩子，然后重新添加。
-                </p>
-                <Button
-                  variant="destructive"
-                  onClick={async () => {
-                    if (confirm('确定要删除所有孩子吗？此操作不可撤销。')) {
-                      try {
-                        const count = await deleteAllChildren();
-                        toast.success(`已删除 ${count} 个孩子`);
-                        queryClient.invalidateQueries({ queryKey: ['children'] });
-                      } catch (error) {
-                        toast.error(getErrorMessage(error));
-                      }
-                    }
-                  }}
-                  className="mt-3"
-                >
-                  清除所有孩子
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* PIN 说明卡片 */}
       <Card className="border-0 shadow-lg shadow-gray-200/50 rounded-3xl overflow-hidden">
