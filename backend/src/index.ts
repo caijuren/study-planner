@@ -23,12 +23,11 @@ const startServer = async () => {
     }
 
     const app = createApp()
+    const port = env.PORT || 10000
 
-    app.listen(env.PORT, () => {
-      // Only show minimal startup info in development
-      if (env.NODE_ENV === 'development') {
-        console.log(`Server running on http://localhost:${env.PORT}${env.API_PREFIX}`)
-      }
+    // Listen on 0.0.0.0 for Render compatibility
+    app.listen(port, '0.0.0.0', () => {
+      console.log(`Server running on port ${port}`)
     })
   } catch (error) {
     logger.error({ err: error }, 'Failed to start server')
