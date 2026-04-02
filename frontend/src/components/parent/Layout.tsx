@@ -56,6 +56,25 @@ export default function ParentLayout() {
     }
   }, [isInitializing, isAuthenticated, navigate, location]);
 
+  // 初始化中显示加载状态，避免子组件访问未定义数据
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-purple-500/25 animate-pulse">
+            🐛
+          </div>
+          <p className="text-gray-500">加载中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 未登录不渲染任何内容
+  if (!isAuthenticated) {
+    return null;
+  }
+
   const handleLogout = () => {
     logout();
     navigate('/login');

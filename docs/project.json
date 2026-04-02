@@ -3,6 +3,6 @@
   "sub_project_type": "",
   "name": "Study Planner",
   "app_slug": "study-planner",
-  "version_description": "添加清除所有孩子功能",
+  "version_description": "添加删除孩子错误日志",
   "preview_type": "pc"
 }
