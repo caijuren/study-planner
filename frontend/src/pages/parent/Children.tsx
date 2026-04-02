@@ -123,9 +123,12 @@ export default function ChildrenPage() {
   });
 
   const { data: children = [], isLoading, error: queryError } = useQuery({
-    queryKey: ['children'],
+    queryKey: ['children', user?.familyId],
     queryFn: fetchChildren,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
     retry: 2,
     retryDelay: 1000,
   });

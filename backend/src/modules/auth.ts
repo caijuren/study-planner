@@ -401,7 +401,9 @@ authRouter.post('/migrate-family', authMiddleware, requireRole('parent'), async 
  * Auth required, parent only
  */
 authRouter.get('/children', authMiddleware, requireRole('parent'), async (req: AuthRequest, res: Response) => {
-  const { familyId } = req.user!
+  const { familyId, userId } = req.user!
+  
+  console.log(`[GET CHILDREN] User ${userId}, Family ${familyId}`)
 
   const children = await prisma.user.findMany({
     where: {
@@ -416,6 +418,8 @@ authRouter.get('/children', authMiddleware, requireRole('parent'), async (req: A
       createdAt: true,
     },
   })
+  
+  console.log(`[GET CHILDREN] Found ${children.length} children:`, children.map(c => c.name))
 
   // TODO: Replace with actual statistics from database
   const childrenWithStats = children.map(child => ({
@@ -517,7 +521,9 @@ authRouter.put('/children/:id', authMiddleware, requireRole('parent'), async (re
  * Auth required, parent only
  */
 authRouter.delete('/children/all', authMiddleware, requireRole('parent'), async (req: AuthRequest, res: Response) => {
-  const { familyId } = req.user!
+  const { familyId, userId } = req.user!
+  
+  console.log(`[DELETE ALL] User ${userId}, Family ${familyId}`)
 
   // Find all children in this family
   const children = await prisma.user.findMany({
@@ -526,12 +532,15 @@ authRouter.delete('/children/all', authMiddleware, requireRole('parent'), async 
       role: 'child',
       status: 'active',
     },
-    select: { id: true },
+    select: { id: true, name: true },
   })
+  
+  console.log(`[DELETE ALL] Found ${children.length} children:`, children.map(c => c.name))
 
   const childIds = children.map(c => c.id)
 
   if (childIds.length === 0) {
+    console.log('[DELETE ALL] No children to delete')
     res.json({
       status: 'success',
       message: '没有需要删除的孩子',
@@ -547,6 +556,8 @@ authRouter.delete('/children/all', authMiddleware, requireRole('parent'), async 
     },
     data: { status: 'inactive' },
   })
+  
+  console.log(`[DELETE ALL] Soft deleted ${result.count} children`)
 
   res.json({
     status: 'success',
