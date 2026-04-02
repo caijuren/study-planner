@@ -47,11 +47,12 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    // Handle 401 Unauthorized - 清除认证状态，但不跳转
-    // 让各个页面的逻辑来处理跳转
+    // Handle 401 Unauthorized - 清除认证状态，触发全局事件
     if (error.response?.status === 401) {
       localStorage.removeItem('auth_state');
       localStorage.removeItem('auth_token');
+      // 触发全局登出事件，让 AuthProvider 更新状态
+      window.dispatchEvent(new Event('auth:logout'));
     }
 
     // Handle 403 Forbidden

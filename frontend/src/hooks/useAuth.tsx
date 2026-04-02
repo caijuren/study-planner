@@ -56,6 +56,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    // 先尝试从本地存储恢复用户数据，避免闪烁
+    const stored = getStoredAuthState();
+    if (stored.user && stored.token === token) {
+      setState(stored);
+    }
+
     try {
       const response = await apiClient.get('/auth/me');
       const user = response.data.data;
@@ -72,12 +78,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token,
         isAuthenticated: true,
       });
-    } catch (err) {
-      // Token 无效，清除状态，但不跳转（让用户留在当前页面）
-      console.error('Token verification failed:', err);
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem('auth_token');
-      setState({ user: null, token: null, isAuthenticated: false });
+    } catch (err: any) {
+      // 如果是网络错误（后端休眠），保持当前状态，不强制登出
+      if (err.code === 'ECONNABORTED' || err.message?.includes('Network Error') || !err.response) {
+        console.warn('Network error during token verification, keeping existing session');
+        // 保持现有状态，不登出
+      } else if (err.response?.status === 401) {
+        // Token 真正无效，清除状态
+        console.error('Token invalid (401), logging out');
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem('auth_token');
+        setState({ user: null, token: null, isAuthenticated: false });
+        window.dispatchEvent(new Event('auth:logout'));
+      } else {
+        // 其他错误，保持现有状态
+        console.error('Token verification error:', err);
+      }
     } finally {
       setIsInitializing(false);
     }
@@ -87,6 +103,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     verifyToken();
   }, [verifyToken]);
+
+  // 监听全局登出事件
+  useEffect(() => {
+    const handleLogout = () => {
+      setState({ user: null, token: null, isAuthenticated: false });
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem('auth_token');
+    };
+
+    window.addEventListener('auth:logout', handleLogout);
+    return () => window.removeEventListener('auth:logout', handleLogout);
+  }, []);
 
   useEffect(() => {
     if (!isInitializing) {
