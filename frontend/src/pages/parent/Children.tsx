@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -121,11 +121,21 @@ export default function ChildrenPage() {
     defaultValues: { name: '', avatar: '🦊', pin: '' }
   });
 
-  const { data: children = [], isLoading } = useQuery({
+  const { data: children = [], isLoading, error: queryError } = useQuery({
     queryKey: ['children'],
     queryFn: fetchChildren,
-    staleTime: 5 * 60 * 1000
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+    retryDelay: 1000,
   });
+
+  // Show error toast if query fails
+  useEffect(() => {
+    if (queryError) {
+      toast.error('获取孩子列表失败，请刷新重试');
+      console.error('Query error:', queryError);
+    }
+  }, [queryError]);
 
   const createMutation = useMutation({
     mutationFn: addChild,
