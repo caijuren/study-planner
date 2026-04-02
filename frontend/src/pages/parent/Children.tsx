@@ -88,6 +88,11 @@ async function deleteChild(id: number): Promise<void> {
   await apiClient.delete(`/auth/children/${id}`);
 }
 
+async function deleteAllChildren(): Promise<number> {
+  const { data } = await apiClient.delete('/auth/children/all');
+  return data.data.deletedCount;
+}
+
 async function migrateFamily(): Promise<{ token: string; user: any; migratedChildren: number }> {
   const { data } = await apiClient.post('/auth/migrate-family');
   return data.data;
@@ -296,6 +301,42 @@ export default function ChildrenPage() {
                   className="mt-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl"
                 >
                   {migrating ? '迁移中...' : '立即迁移'}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Clear Children Warning - for migrated users with unwanted children */}
+      {user?.familyCode?.startsWith('F') && children && children.length > 0 && (
+        <Card className="border-2 border-red-200 bg-red-50 shadow-lg rounded-3xl overflow-hidden">
+          <CardContent className="p-5">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-400 to-rose-400 flex items-center justify-center shrink-0">
+                <AlertTriangle className="size-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900">数据清理提示</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  如果孩子列表中有不属于您的数据，可以点击下方按钮清除所有孩子，然后重新添加。
+                </p>
+                <Button
+                  variant="destructive"
+                  onClick={async () => {
+                    if (confirm('确定要删除所有孩子吗？此操作不可撤销。')) {
+                      try {
+                        const count = await deleteAllChildren();
+                        toast.success(`已删除 ${count} 个孩子`);
+                        queryClient.invalidateQueries({ queryKey: ['children'] });
+                      } catch (error) {
+                        toast.error(getErrorMessage(error));
+                      }
+                    }
+                  }}
+                  className="mt-3"
+                >
+                  清除所有孩子
                 </Button>
               </div>
             </div>

@@ -513,6 +513,28 @@ authRouter.put('/children/:id', authMiddleware, requireRole('parent'), async (re
 })
 
 /**
+ * DELETE /children/all - Delete all children in the family
+ * Auth required, parent only
+ */
+authRouter.delete('/children/all', authMiddleware, requireRole('parent'), async (req: AuthRequest, res: Response) => {
+  const { familyId } = req.user!
+
+  // Delete all children in this family
+  const result = await prisma.user.deleteMany({
+    where: {
+      familyId,
+      role: 'child',
+    },
+  })
+
+  res.json({
+    status: 'success',
+    message: `已删除 ${result.count} 个孩子`,
+    data: { deletedCount: result.count },
+  })
+})
+
+/**
  * DELETE /children/:id - Delete a child
  * Auth required, parent only
  */
