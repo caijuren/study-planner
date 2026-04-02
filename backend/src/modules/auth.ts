@@ -519,12 +519,33 @@ authRouter.put('/children/:id', authMiddleware, requireRole('parent'), async (re
 authRouter.delete('/children/all', authMiddleware, requireRole('parent'), async (req: AuthRequest, res: Response) => {
   const { familyId } = req.user!
 
-  // Delete all children in this family
-  const result = await prisma.user.deleteMany({
+  // Find all children in this family
+  const children = await prisma.user.findMany({
     where: {
       familyId,
       role: 'child',
+      status: 'active',
     },
+    select: { id: true },
+  })
+
+  const childIds = children.map(c => c.id)
+
+  if (childIds.length === 0) {
+    res.json({
+      status: 'success',
+      message: '没有需要删除的孩子',
+      data: { deletedCount: 0 },
+    })
+    return
+  }
+
+  // Soft delete by updating status to 'inactive'
+  const result = await prisma.user.updateMany({
+    where: {
+      id: { in: childIds },
+    },
+    data: { status: 'inactive' },
   })
 
   res.json({
@@ -539,31 +560,39 @@ authRouter.delete('/children/all', authMiddleware, requireRole('parent'), async 
  * Auth required, parent only
  */
 authRouter.delete('/children/:id', authMiddleware, requireRole('parent'), async (req: AuthRequest, res: Response) => {
-  const id = parseInt(req.params.id as string)
-  const { familyId } = req.user!
+  try {
+    const id = parseInt(req.params.id as string)
+    const { familyId } = req.user!
 
-  // Check if child exists and belongs to the family
-  const existingChild = await prisma.user.findFirst({
-    where: {
-      id,
-      familyId,
-      role: 'child',
-      status: 'active',
-    },
-  })
+    console.log(`Deleting child ${id} from family ${familyId}`)
 
-  if (!existingChild) {
-    throw new AppError(404, '孩子不存在')
+    // Check if child exists and belongs to the family
+    const existingChild = await prisma.user.findFirst({
+      where: {
+        id,
+        familyId,
+        role: 'child',
+        status: 'active',
+      },
+    })
+
+    if (!existingChild) {
+      console.log(`Child ${id} not found in family ${familyId}`)
+      throw new AppError(404, '孩子不存在')
+    }
+
+    // Soft delete by updating status to 'inactive'
+    await prisma.user.update({
+      where: { id },
+      data: { status: 'inactive' },
+    })
+
+    res.json({
+      status: 'success',
+      message: '孩子已删除',
+    })
+  } catch (error: any) {
+    console.error('Delete child error:', error)
+    throw new AppError(500, `删除失败: ${error.message}`)
   }
-
-  // Soft delete by updating status to 'inactive'
-  await prisma.user.update({
-    where: { id },
-    data: { status: 'inactive' },
-  })
-
-  res.json({
-    status: 'success',
-    message: '孩子已删除',
-  })
 })
