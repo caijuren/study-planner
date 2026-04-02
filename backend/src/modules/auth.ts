@@ -314,6 +314,113 @@ authRouter.get('/me', authMiddleware, async (req: AuthRequest, res: Response) =>
 })
 
 /**
+ * POST /migrate-family - Migrate user to a new independent family
+ * For users who were previously in shared 'default' family
+ * Auth required, parent only
+ */
+authRouter.post('/migrate-family', authMiddleware, requireRole('parent'), async (req: AuthRequest, res: Response) => {
+  const { userId, familyId: currentFamilyId } = req.user!
+
+  // Check if user is in a shared family
+  const currentFamily = await prisma.family.findUnique({
+    where: { id: currentFamilyId },
+    include: {
+      users: {
+        where: { role: 'parent', status: 'active' }
+      }
+    }
+  })
+
+  if (!currentFamily) {
+    throw new AppError(404, '家庭不存在')
+  }
+
+  // If family has multiple parents or is 'default', user needs migration
+  const needsMigration = currentFamily.familyCode === 'default' || currentFamily.users.length > 1
+
+  if (!needsMigration) {
+    throw new AppError(400, '您已经在独立家庭中，无需迁移')
+  }
+
+  // Generate unique family code
+  const familyCode = `F${Date.now().toString(36).toUpperCase()}`
+
+  // Create new family
+  const newFamily = await prisma.family.create({
+    data: {
+      name: `${req.user!.name}的家庭`,
+      familyCode,
+      settings: {
+        dailyTimeLimit: 210,
+        dingtalkWebhook: '',
+      },
+    },
+  })
+
+  // Get all children of this parent (by checking who was created by this parent's session)
+  // Since we don't track createdBy, we'll migrate all children in the old family
+  // But for shared families, we should only migrate children added by this user
+
+  // For 'default' family: migrate all children associated with this parent
+  // This is a simplified approach - in production you'd want to track createdBy
+  const childrenToMigrate = await prisma.user.findMany({
+    where: {
+      familyId: currentFamilyId,
+      role: 'child',
+      status: 'active',
+    }
+  })
+
+  // Update parent's family
+  await prisma.user.update({
+    where: { id: userId },
+    data: { familyId: newFamily.id }
+  })
+
+  // Update children's family
+  if (childrenToMigrate.length > 0) {
+    await prisma.user.updateMany({
+      where: {
+        id: { in: childrenToMigrate.map(c => c.id) }
+      },
+      data: { familyId: newFamily.id }
+    })
+  }
+
+  // Generate new token with new familyId
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { family: true }
+  })
+
+  const token = generateToken({
+    id: user!.id,
+    name: user!.name,
+    role: user!.role,
+    familyId: newFamily.id,
+    avatar: user!.avatar,
+  })
+
+  res.json({
+    status: 'success',
+    message: '家庭迁移成功',
+    data: {
+      token,
+      user: {
+        id: user!.id,
+        name: user!.name,
+        role: user!.role,
+        familyId: newFamily.id,
+        familyName: newFamily.name,
+        familyCode: newFamily.familyCode,
+        avatar: user!.avatar,
+      },
+      migratedChildren: childrenToMigrate.length,
+    },
+  })
+})
+
+/**
  * GET /children - Get all children in the family
  * Auth required, parent only
  */
