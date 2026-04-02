@@ -141,79 +141,88 @@ tasksRouter.get('/:id', async (req: AuthRequest, res: Response) => {
  * Body: { name?, category?, type?, timePerUnit?, weeklyRule?, isActive?, tags?, appliesTo? }
  */
 tasksRouter.put('/:id', async (req: AuthRequest, res: Response) => {
-  const id = parseInt(req.params.id as string)
-  const { familyId } = req.user!
-  const { name, category, type, timePerUnit, weeklyRule, isActive, tags, appliesTo } = req.body
+  try {
+    const id = parseInt(req.params.id as string)
+    const { familyId } = req.user!
+    const { name, category, type, timePerUnit, weeklyRule, isActive, tags, appliesTo } = req.body
 
-  // Check task exists and belongs to family
-  const existingTask = await prisma.task.findFirst({
-    where: { id, familyId },
-  })
+    console.log(`[UPDATE TASK] Task ${id}, Family ${familyId}, Body:`, JSON.stringify(req.body))
 
-  if (!existingTask) {
-    throw new AppError(404, 'Task not found')
-  }
+    // Check task exists and belongs to family
+    const existingTask = await prisma.task.findFirst({
+      where: { id, familyId },
+    })
 
-  // Validate category if provided
-  if (category) {
-    const validCategories = ['school', 'extra', 'english', 'sports', 'chinese']
-    if (!validCategories.includes(category)) {
-      throw new AppError(400, `Invalid category. Must be one of: ${validCategories.join(', ')}`)
+    if (!existingTask) {
+      throw new AppError(404, 'Task not found')
     }
-  }
 
-  // Validate type if provided
-  if (type) {
-    const validTypes = ['fixed', 'flexible', 'follow']
-    if (!validTypes.includes(type)) {
-      throw new AppError(400, `Invalid type. Must be one of: ${validTypes.join(', ')}`)
-    }
-  }
-
-  // Validate and process tags if provided
-  let validatedTags
-  if (tags !== undefined) {
-    if (tags === null) {
-      validatedTags = null
-    } else if (typeof tags === 'object') {
-      validatedTags = {
-        ...(tags.subject && VALID_SUBJECTS.includes(tags.subject) && { subject: tags.subject }),
-        ...(tags.format && Array.isArray(tags.format) && { format: tags.format.filter((f: string) => VALID_FORMATS.includes(f)) }),
-        ...(tags.participation && VALID_PARTICIPATIONS.includes(tags.participation) && { participation: tags.participation }),
-        ...(tags.difficulty && VALID_DIFFICULTIES.includes(tags.difficulty) && { difficulty: tags.difficulty }),
+    // Validate category if provided
+    if (category) {
+      const validCategories = ['school', 'extra', 'english', 'sports', 'chinese']
+      if (!validCategories.includes(category)) {
+        throw new AppError(400, `Invalid category. Must be one of: ${validCategories.join(', ')}`)
       }
     }
-  }
 
-  // Validate and process appliesTo if provided
-  let validatedAppliesTo: number[] | undefined
-  if (appliesTo !== undefined) {
-    if (appliesTo === null) {
-      validatedAppliesTo = []
-    } else if (Array.isArray(appliesTo)) {
-      validatedAppliesTo = appliesTo.filter((id: any) => typeof id === 'number')
+    // Validate type if provided
+    if (type) {
+      const validTypes = ['fixed', 'flexible', 'follow']
+      if (!validTypes.includes(type)) {
+        throw new AppError(400, `Invalid type. Must be one of: ${validTypes.join(', ')}`)
+      }
     }
+
+    // Validate and process tags if provided
+    let validatedTags
+    if (tags !== undefined) {
+      if (tags === null) {
+        validatedTags = null
+      } else if (typeof tags === 'object') {
+        validatedTags = {
+          ...(tags.subject && VALID_SUBJECTS.includes(tags.subject) && { subject: tags.subject }),
+          ...(tags.format && Array.isArray(tags.format) && { format: tags.format.filter((f: string) => VALID_FORMATS.includes(f)) }),
+          ...(tags.participation && VALID_PARTICIPATIONS.includes(tags.participation) && { participation: tags.participation }),
+          ...(tags.difficulty && VALID_DIFFICULTIES.includes(tags.difficulty) && { difficulty: tags.difficulty }),
+        }
+      }
+    }
+
+    // Validate and process appliesTo if provided
+    let validatedAppliesTo: number[] | undefined
+    if (appliesTo !== undefined) {
+      if (appliesTo === null) {
+        validatedAppliesTo = []
+      } else if (Array.isArray(appliesTo)) {
+        validatedAppliesTo = appliesTo.filter((id: any) => typeof id === 'number')
+      }
+    }
+
+    const task = await prisma.task.update({
+      where: { id },
+      data: {
+        ...(name && { name }),
+        ...(category && { category }),
+        ...(type && { type }),
+        ...(timePerUnit !== undefined && { timePerUnit }),
+        ...(weeklyRule !== undefined && { weeklyRule }),
+        ...(isActive !== undefined && { isActive }),
+        ...(validatedTags !== undefined && { tags: validatedTags }),
+        ...(validatedAppliesTo !== undefined && { appliesTo: validatedAppliesTo }),
+      },
+    })
+
+    console.log(`[UPDATE TASK] Success: Task ${id} updated`)
+
+    res.json({
+      status: 'success',
+      message: 'Task updated successfully',
+      data: task,
+    })
+  } catch (error: any) {
+    console.error('[UPDATE TASK] Error:', error)
+    throw new AppError(500, `Update failed: ${error.message}`)
   }
-
-  const task = await prisma.task.update({
-    where: { id },
-    data: {
-      ...(name && { name }),
-      ...(category && { category }),
-      ...(type && { type }),
-      ...(timePerUnit !== undefined && { timePerUnit }),
-      ...(weeklyRule !== undefined && { weeklyRule }),
-      ...(isActive !== undefined && { isActive }),
-      ...(validatedTags !== undefined && { tags: validatedTags }),
-      ...(validatedAppliesTo !== undefined && { appliesTo: validatedAppliesTo }),
-    },
-  })
-
-  res.json({
-    status: 'success',
-    message: 'Task updated successfully',
-    data: task,
-  })
 })
 
 /**
