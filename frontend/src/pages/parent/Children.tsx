@@ -42,7 +42,7 @@ import { cn } from '@/lib/utils';
 
 // Types
 interface Child {
-  id: string;
+  id: number;
   name: string;
   avatar?: string;
   pin: string;
@@ -77,12 +77,12 @@ async function addChild(child: ChildFormData): Promise<Child> {
   return data.data;
 }
 
-async function updateChild(id: string, child: ChildFormData): Promise<Child> {
+async function updateChild(id: number, child: ChildFormData): Promise<Child> {
   const { data } = await apiClient.put(`/auth/children/${id}`, child);
   return data.data;
 }
 
-async function deleteChild(id: string): Promise<void> {
+async function deleteChild(id: number): Promise<void> {
   await apiClient.delete(`/auth/children/${id}`);
 }
 
@@ -121,7 +121,7 @@ export default function ChildrenPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: ChildFormData }) => updateChild(id, data),
+    mutationFn: ({ id, data }: { id: number; data: ChildFormData }) => updateChild(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['children'] });
       toast.success('信息更新成功');
@@ -214,7 +214,7 @@ export default function ChildrenPage() {
   };
 
   const handleDelete = () => childToDelete && deleteMutation.mutate(childToDelete.id);
-  const switchToChildView = (_childId: string) => navigate('/child');
+  const switchToChildView = (_childId: number) => navigate('/child');
 
   const renderAvatar = (child: Child) => {
     const avatar = child.avatar || '👶';
