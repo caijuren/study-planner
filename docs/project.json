@@ -3,6 +3,6 @@
   "sub_project_type": "",
   "name": "Study Planner",
   "app_slug": "study-planner",
-  "version_description": "修复任务操作数据库schema不匹配",
+  "version_description": "添加数据库迁移修复缺失列",
   "preview_type": "pc"
 }

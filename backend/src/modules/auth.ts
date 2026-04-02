@@ -231,56 +231,65 @@ authRouter.post('/child/login', async (req, res: Response) => {
  * Auth required, parent only
  */
 authRouter.post('/add-child', authMiddleware, requireRole('parent'), async (req: AuthRequest, res: Response) => {
-  const { name, avatar, pin } = req.body
-  const { familyId } = req.user!
+  try {
+    const { name, avatar, pin } = req.body
+    const { familyId, userId } = req.user!
 
-  if (!name || !pin) {
-    throw new AppError(400, 'Missing required fields: name, pin')
+    console.log(`[ADD CHILD] User ${userId}, Family ${familyId}, Name: ${name}`)
+
+    if (!name || !pin) {
+      throw new AppError(400, 'Missing required fields: name, pin')
+    }
+
+    // Validate PIN format (4-digit number)
+    if (!/^\d{4}$/.test(pin)) {
+      throw new AppError(400, 'PIN must be a 4-digit number')
+    }
+
+    // Check if child with same name already exists in family
+    const existingChild = await prisma.user.findFirst({
+      where: {
+        familyId,
+        name,
+        status: 'active',
+      },
+    })
+
+    if (existingChild) {
+      throw new AppError(409, '该名字的孩子已存在')
+    }
+
+    // Hash PIN
+    const passwordHash = await bcrypt.hash(pin, 12)
+
+    // Create child user
+    const child = await prisma.user.create({
+      data: {
+        name,
+        role: 'child',
+        avatar: avatar || '🐛',
+        passwordHash,
+        familyId,
+        status: 'active',
+      },
+    })
+
+    console.log(`[ADD CHILD] Success: Child ${child.name} (ID: ${child.id}) created`)
+
+    res.status(201).json({
+      status: 'success',
+      message: 'Child added successfully',
+      data: {
+        id: child.id,
+        name: child.name,
+        avatar: child.avatar,
+        role: child.role,
+      },
+    })
+  } catch (error: any) {
+    console.error('[ADD CHILD] Error:', error)
+    throw new AppError(500, `添加孩子失败: ${error.message}`)
   }
-
-  // Validate PIN format (4-digit number)
-  if (!/^\d{4}$/.test(pin)) {
-    throw new AppError(400, 'PIN must be a 4-digit number')
-  }
-
-  // Check if child with same name already exists in family
-  const existingChild = await prisma.user.findFirst({
-    where: {
-      familyId,
-      name,
-      status: 'active',
-    },
-  })
-
-  if (existingChild) {
-    throw new AppError(409, 'Child with this name already exists in your family')
-  }
-
-  // Hash PIN
-  const passwordHash = await bcrypt.hash(pin, 12)
-
-  // Create child user
-  const child = await prisma.user.create({
-    data: {
-      name,
-      role: 'child',
-      avatar: avatar || '🐛',
-      passwordHash,
-      familyId,
-      status: 'active',
-    },
-  })
-
-  res.status(201).json({
-    status: 'success',
-    message: 'Child added successfully',
-    data: {
-      id: child.id,
-      name: child.name,
-      avatar: child.avatar,
-      role: child.role,
-    },
-  })
 })
 
 /**
